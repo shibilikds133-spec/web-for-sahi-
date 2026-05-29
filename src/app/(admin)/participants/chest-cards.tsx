@@ -657,8 +657,9 @@ export default function ChestCardsPage() {
               -webkit-print-color-adjust: exact !important;
               color-adjust: exact !important;
               print-color-adjust: exact !important;
+              overflow: visible !important;
             }
-            .chest-card-wrapper, .qr-wrapper {
+            .chest-card-wrapper, .qr-wrapper, .qr-wrapper * {
               overflow: hidden !important;
             }
             html, body {
