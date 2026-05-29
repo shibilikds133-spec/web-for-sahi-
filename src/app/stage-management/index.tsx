@@ -3,11 +3,9 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform, 
 import { useRouter } from 'expo-router';
 import { SsfCard } from '../../components/ui/SsfCard';
 import { SsfButton } from '../../components/ui/SsfButton';
-import { useSchedule } from '../../core/hooks/useSchedule';
+import { useSchedule, usePublicSchedule, usePublicRegistrations } from '../../core/hooks/useSchedule';
 import { Calendar, MapPin, Clock, Search, X, Lock } from 'lucide-react-native';
-import { useParticipants } from '../../core/hooks/useParticipants';
-import { useFestival } from '../../core/hooks/useFestival';
-import { useAuthStore } from '../../core/store/authStore';
+import { useGetPublicLeaderboardSettings } from '../../core/hooks/useLeaderboardSettings';
 
 function ScheduleWorkflowBadges({ registrations = [] }: { registrations?: any[] }) {
   const activeRegs = registrations.filter((r: any) => r.status !== 'rejected');
@@ -67,12 +65,31 @@ export default function StageManagementDashboard() {
     }
   };
 
-  const { schedules, isLoadingSchedules, venues, isLoadingVenues } = useSchedule();
-  const { useActiveFestival } = useFestival();
-  const { data: festival, isLoading: isLoadingFest } = useActiveFestival();
-  const { useFestivalRegistrations } = useParticipants();
-  const { data: allRegistrations = [], isLoading: isLoadingRegs } = useFestivalRegistrations(festival?.id);
-  const { tenant_id } = useAuthStore();
+  const settingsQuery = useGetPublicLeaderboardSettings();
+  const festivalId = settingsQuery.data?.festival_id;
+
+  const schedulesQuery = usePublicSchedule(festivalId);
+  const schedules = schedulesQuery.data || [];
+  const isLoadingSchedules = schedulesQuery.isLoading;
+
+  const registrationsQuery = usePublicRegistrations(festivalId);
+  const allRegistrations = registrationsQuery.data || [];
+  const isLoadingRegs = registrationsQuery.isLoading;
+
+  const venues = React.useMemo(() => {
+    const venueMap = new Map<string, any>();
+    schedules.forEach((s: any) => {
+      const v = s.venues;
+      if (v) {
+        venueMap.set(v.id || v.name, { id: v.id, name: v.name });
+      }
+    });
+    return Array.from(venueMap.values());
+  }, [schedules]);
+
+  const isLoadingVenues = isLoadingSchedules;
+  const festival = { id: festivalId };
+  const isLoadingFest = settingsQuery.isLoading;
   
   const { width } = useWindowDimensions();
   const isMobile = width < 768;

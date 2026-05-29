@@ -3,22 +3,31 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Pla
 import { useLocalSearchParams } from 'expo-router';
 import { SsfCard } from '../../../components/ui/SsfCard';
 import { SsfButton } from '../../../components/ui/SsfButton';
-import { useSchedule } from '../../../core/hooks/useSchedule';
+import { useSchedule, usePublicSchedule } from '../../../core/hooks/useSchedule';
 import { useParticipants } from '../../../core/hooks/useParticipants';
 import { useGoBack } from '../../../core/hooks/useGoBack';
 import { ArrowLeft, RefreshCw, Lock, AlertTriangle, XCircle, Edit2 } from 'lucide-react-native';
 import { TextInput } from 'react-native';
+import { useGetPublicLeaderboardSettings } from '../../../core/hooks/useLeaderboardSettings';
+import { useJudges } from '../../../core/hooks/useJudges';
 
 export default function CodeLetterGeneration() {
   const { id } = useLocalSearchParams();
   const scheduleId = Array.isArray(id) ? id[0] : id;
   const goBack = useGoBack('/stage-management');
 
-  const { schedules, isLoadingSchedules, updateSchedule } = useSchedule();
+  const settingsQuery = useGetPublicLeaderboardSettings();
+  const festivalId = settingsQuery.data?.festival_id;
+  const schedulesQuery = usePublicSchedule(festivalId);
+  const schedules = schedulesQuery.data || [];
+  const isLoadingSchedules = schedulesQuery.isLoading || settingsQuery.isLoading;
+
+  const { updateSchedule } = useSchedule();
   const schedule = schedules.find((s: any) => s.id === scheduleId);
 
   const { useItemRegistrations, generateCodeLetters, isGeneratingCodeLetters, updateCodeLetter, isUpdatingCodeLetter, useParticipantConflicts } = useParticipants();
-  const { data: registrations, isLoading: isLoadingRegs } = useItemRegistrations(schedule?.item_id);
+  const { useScheduleRegistrations } = useJudges();
+  const { data: registrations, isLoading: isLoadingRegs } = useScheduleRegistrations(scheduleId);
 
   const activeRegistrations = React.useMemo(() => {
     return registrations?.filter((r: any) => r.status !== 'rejected') || [];

@@ -12,8 +12,10 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SsfCard } from '../../../components/ui/SsfCard';
 import { SsfButton } from '../../../components/ui/SsfButton';
-import { useSchedule } from '../../../core/hooks/useSchedule';
+import { usePublicSchedule } from '../../../core/hooks/useSchedule';
 import { useParticipants } from '../../../core/hooks/useParticipants';
+import { useGetPublicLeaderboardSettings } from '../../../core/hooks/useLeaderboardSettings';
+import { useJudges } from '../../../core/hooks/useJudges';
 import { participantRepository } from '../../../lib/repositories/participantRepository';
 import {
   ArrowLeft,
@@ -32,15 +34,19 @@ export default function CheckIn() {
   const scheduleId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
 
-  const { schedules, isLoadingSchedules } = useSchedule();
+  const settingsQuery = useGetPublicLeaderboardSettings();
+  const festivalId = settingsQuery.data?.festival_id;
+  const schedulesQuery = usePublicSchedule(festivalId);
+  const schedules = schedulesQuery.data || [];
+  const isLoadingSchedules = schedulesQuery.isLoading || settingsQuery.isLoading;
   const schedule = schedules.find((s: any) => s.id === scheduleId);
 
-  const { useItemRegistrations } = useParticipants();
+  const { useScheduleRegistrations } = useJudges();
   const {
     data: registrations,
     isLoading: isLoadingRegs,
     refetch,
-  } = useItemRegistrations(schedule?.item_id);
+  } = useScheduleRegistrations(scheduleId);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
