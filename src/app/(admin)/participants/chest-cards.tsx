@@ -37,6 +37,7 @@ type OverlayField = {
   color?: string;
   backgroundColor?: string;
   borderRadius?: number;
+  padding?: number;
 };
 
 type ChestTemplate = {
@@ -83,7 +84,7 @@ const defaultTemplate = (): ChestTemplate => ({
     chest: { x: 38, y: 96, width: 172, height: 56, fontSize: 38, color: '#EAB308' },
     name: { x: 38, y: 160, width: 172, height: 24, fontSize: 16, color: '#FFFFFF' },
     unit: { x: 38, y: 190, width: 172, height: 18, fontSize: 12, color: '#FFFFFF' },
-    qr: { x: 74, y: 220, width: 100, height: 100, borderRadius: 8 },
+    qr: { x: 74, y: 220, width: 100, height: 100, borderRadius: 8, padding: 6 },
   },
 });
 
@@ -111,7 +112,7 @@ const readTemplates = () => {
       chest: { ...t.fields.chest, color: t.fields.chest.color || '#EAB308' },
       name: t.fields.name || { x: 38, y: 160, width: 172, height: 24, fontSize: 16, color: '#FFFFFF' },
       unit: t.fields.unit || { x: 38, y: 190, width: 172, height: 18, fontSize: 12, color: '#FFFFFF' },
-      qr: { ...t.fields.qr, borderRadius: t.fields.qr.borderRadius ?? 8 },
+      qr: { ...t.fields.qr, borderRadius: t.fields.qr.borderRadius ?? 8, padding: t.fields.qr.padding ?? 6 },
     }
   }));
 };
@@ -255,6 +256,7 @@ const FieldBox = ({
         borderWidth: selected ? 1 : 0,
         borderColor: selected ? '#0B6BDB' : 'transparent',
         borderStyle: 'dashed',
+        borderRadius: (field.borderRadius ?? 0) * printScale,
         cursor: editable ? 'move' : 'default',
       } as any}
     >
@@ -423,7 +425,14 @@ const ChestCard = ({
         editable={editable}
         onSelect={() => onSelectField?.('qr')}
         onMove={(patch) => onMoveField?.('qr', patch)}
-        onResize={(patch) => onResizeField?.('qr', patch)}
+        onResize={(patch) => {
+          if (patch.width !== undefined && patch.height !== undefined) {
+             const size = Math.max(patch.width, patch.height);
+             onResizeField?.('qr', { ...patch, width: size, height: size });
+          } else {
+             onResizeField?.('qr', patch);
+          }
+        }}
         printScale={scale}
       >
         <View
@@ -432,12 +441,21 @@ const ChestCard = ({
             width: template.fields.qr.width * scale,
             height: template.fields.qr.height * scale,
             backgroundColor: template.fields.qr.backgroundColor || '#FFFFFF',
-            padding: 5 * scale,
+            padding: (template.fields.qr.padding ?? 6) * scale,
             borderRadius: (template.fields.qr.borderRadius ?? 8) * scale,
             overflow: 'hidden',
           }}
         >
-          <Image source={{ uri: qrUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+          <Image 
+            source={{ uri: qrUrl }} 
+            style={{ 
+              width: '100%', 
+              height: '100%',
+              borderRadius: Math.max(0, (template.fields.qr.borderRadius ?? 8) - (template.fields.qr.padding ?? 6) / 2) * scale,
+              overflow: 'hidden'
+            }} 
+            resizeMode="contain" 
+          />
         </View>
       </FieldBox>
     </View>
@@ -746,10 +764,10 @@ export default function ChestCardsPage() {
                 </View>
 
                 <View className="gap-y-3">
-                  {(['x', 'y', 'width', 'height', 'fontSize', 'color', 'backgroundColor', 'borderRadius'] as const).map(key => {
+                  {(['x', 'y', 'width', 'height', 'fontSize', 'color', 'backgroundColor', 'borderRadius', 'padding'] as const).map(key => {
                     if (key === 'fontSize' && selectedField === 'qr') return null;
-                    if (key === 'borderRadius' && selectedField !== 'qr') return null;
-                    const value = activeTemplate.fields[selectedField][key as keyof OverlayField] ?? (key === 'color' ? '#000000' : (key === 'backgroundColor' ? '#FFFFFF' : (key === 'borderRadius' ? 8 : 12)));
+                    if ((key === 'borderRadius' || key === 'padding') && selectedField !== 'qr') return null;
+                    const value = activeTemplate.fields[selectedField][key as keyof OverlayField] ?? (key === 'color' ? '#000000' : (key === 'backgroundColor' ? '#FFFFFF' : (key === 'borderRadius' ? 8 : (key === 'padding' ? 6 : 12))));
                     
                     if (key === 'color' || key === 'backgroundColor') {
                       const label = key === 'color' ? (selectedField === 'qr' ? 'QR Code Color (Hex)' : 'Text Color (Hex)') : 'Background Color (Hex)';
@@ -771,7 +789,14 @@ export default function ChestCardsPage() {
                         <Text className="font-poppins-bold text-xs text-ssf-text mb-1">{key}</Text>
                         <View className="flex-row gap-x-2 items-center">
                           <TouchableOpacity
-                            onPress={() => updateField(selectedField, { [key]: Math.max(0, Number(value) - 1) })}
+                            onPress={() => {
+                              const num = Math.max(0, Number(value) - 1);
+                              if (selectedField === 'qr' && (key === 'width' || key === 'height')) {
+                                updateField(selectedField, { width: num, height: num });
+                              } else {
+                                updateField(selectedField, { [key]: num });
+                              }
+                            }}
                             className="bg-gray-100 px-3 py-2 rounded-lg"
                           >
                             <Text className="font-poppins-black">-</Text>
@@ -781,16 +806,33 @@ export default function ChestCardsPage() {
                             keyboardType="numeric"
                             onChangeText={(val) => {
                               if (val.trim() === '') {
-                                updateField(selectedField, { [key]: 0 });
+                                if (selectedField === 'qr' && (key === 'width' || key === 'height')) {
+                                  updateField(selectedField, { width: 0, height: 0 });
+                                } else {
+                                  updateField(selectedField, { [key]: 0 });
+                                }
                               } else {
                                 const num = parseInt(val, 10);
-                                if (!isNaN(num)) updateField(selectedField, { [key]: num });
+                                if (!isNaN(num)) {
+                                  if (selectedField === 'qr' && (key === 'width' || key === 'height')) {
+                                    updateField(selectedField, { width: num, height: num });
+                                  } else {
+                                    updateField(selectedField, { [key]: num });
+                                  }
+                                }
                               }
                             }}
                             className="bg-white border border-ssf-border px-3 py-2 rounded-lg font-poppins text-xs text-center text-ssf-text w-16"
                           />
                           <TouchableOpacity
-                            onPress={() => updateField(selectedField, { [key]: Number(value) + 1 })}
+                            onPress={() => {
+                              const num = Number(value) + 1;
+                              if (selectedField === 'qr' && (key === 'width' || key === 'height')) {
+                                updateField(selectedField, { width: num, height: num });
+                              } else {
+                                updateField(selectedField, { [key]: num });
+                              }
+                            }}
                             className="bg-gray-100 px-3 py-2 rounded-lg"
                           >
                             <Text className="font-poppins-black">+</Text>
