@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, Text, TouchableOpacity, useWindowDimensions, View, Image } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
@@ -36,11 +36,11 @@ export function Navbar() {
         }}
       >
         <TouchableOpacity onPress={() => router.push('/(public)' as never)} activeOpacity={0.82} className="flex-row items-center">
-          <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-white/95">
-            <Text className="font-cooper text-[16px] text-[#28105B]" style={{ fontFamily: 'CooperBlack' }}>
-              SSF
-            </Text>
-          </View>
+          <Image
+            source={{ uri: '/logo/image-removebg-preview.png' }}
+            style={{ width: 36, height: 36, marginRight: 12 }}
+            resizeMode="contain"
+          />
           <View>
             <Text className="font-poppins-bold uppercase" style={{ color: '#FFFFFF', fontSize: 12, letterSpacing: 2 }}>
               Kodasseri Sector

@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { supabase } from '../../core/config/supabase';
+import { buildPublicFestivalContext, sanitizeResponse } from '../../services/publicAiService';
 import {
   View,
   Text,
@@ -115,52 +118,168 @@ export default function PublicAiChatbot({ festivalId }: PublicAiChatbotProps) {
     setIsLoading(true);
 
     try {
-      let baseUrl = '';
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        baseUrl = window.location.origin;
+      // 1. Resolve active festival_id if not provided
+      let activeFestivalId = festivalId;
+      if (!activeFestivalId) {
+        try {
+          const { data: activeFestival } = await supabase
+            .from('festival_calendar')
+            .select('id')
+            .eq('is_active', true)
+            .order('festival_year', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (activeFestival) {
+            activeFestivalId = activeFestival.id;
+          }
+        } catch (e) {
+          console.error('Error resolving active festival:', e);
+        }
       }
-      
+
+      if (!activeFestivalId) {
+        throw new Error('Festival is currently not active. Standings and assistant will be online soon.');
+      }
+
+      // 2. Fetch public festival context
+      const festivalContext = await buildPublicFestivalContext(activeFestivalId);
+
+      const currentKolkataDate = new Date().toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const currentKolkataTime = new Date().toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const systemInstruction = `You are the "Public Sahithyolsav AI Assistant", a friendly, public-facing virtual chatbot for the Sahithyolsav festival.
+
+CRITICAL SAFETY RULES:
+1. You are strictly READ-ONLY. You have no ability to write or modify data.
+2. You only have access to published, public-safe leaderboard results, live status, and schedules.
+3. NEVER access or talk about unpublished marks, raw judge scores, admin settings, judge names, private participant data, or internal API structures.
+4. If the user asks for confidential, admin, or unpublished information, you MUST reply exactly: "That information is not publicly available yet."
+5. Do not speculate on results. If a result is not in the context, say it is not available.
+
+CANDIDATE SEARCH RULES:
+- When a user asks for a candidate's profile by name, perform a similarity match.
+- If there are multiple candidates with the same or highly similar names (e.g. >= 90% similar), list ALL matching candidates.
+- Instead of asking them to type the chest number, provide clickable options for each matching candidate using this EXACT syntax: [OPTION:query_text|button_label]
+  For example: [OPTION:Show profile for Chest No 101|Ali (Chest 101)]
+- When the user selects an option, provide the full profile details.
+- You can use this [OPTION:query|label] syntax anytime you want to give the user quick clickable buttons to choose from in your response!
+
+MULTILINGUAL CAPABILITIES:
+- You understand Malayalam, English, and Manglish (Malayalam typed in Latin letters, e.g., "aaran lead cheyyunne?", "mappila pattu result vannoo?").
+- You must match the language style of the user query:
+  - If they ask in Malayalam, reply in natural Malayalam.
+  - If they ask in English, reply in natural English.
+  - If they ask in Manglish or mixed English-Malayalam, reply in mixed Malayalam-English or Manglish style, keeping it natural, concise, and friendly.
+
+RESPONSE STYLE:
+- Keep responses concise, simple, and mobile-friendly.
+- Avoid technical jargon, system configuration info, or referencing database views.
+- Treat all users as guests/audience members of the festival.
+
+FESTIVAL CONTEXT DATA:
+[CONTEXT]
+Current Date: ${currentKolkataDate}
+Current Time: ${currentKolkataTime} (Asia/Kolkata)
+
+${festivalContext}
+[/CONTEXT]
+
+Use the above CONTEXT to answer the user query accurately. If the context does not contain the answer, politely state that the info is not available.`;
+
+      // 3. Resolve active API Key
+      let apiKey = '';
+      try {
+        const { data: dbKeys } = await supabase
+          .from('system_api_keys')
+          .select('provider, key_value')
+          .eq('provider', 'gemini')
+          .eq('is_active', true)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (dbKeys?.key_value) {
+          apiKey = dbKeys.key_value;
+        }
+      } catch (e) {
+        console.warn('Could not fetch Gemini key from database (expected if RLS is active):', e);
+      }
+
+      if (!apiKey) {
+        apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+      }
+
+      if (!apiKey) {
+        throw new Error('AI Assistant is currently offline. No API key configured.');
+      }
+
+      // 4. Initialize Gemini AI client
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        systemInstruction,
+      });
+
+      // 5. Build chat history for Gemini API
       const chatHistoryForApi = messages
         .filter((m) => m.id !== 'welcome')
         .map((m) => ({
-          role: m.role,
-          content: m.content,
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
         }));
 
-      const response = await fetch(`${baseUrl}/api/public-ai-chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: trimmed,
-          chatHistory: chatHistoryForApi,
-          festivalId,
-        }),
-      });
+      const chatSession = model.startChat({ history: chatHistoryForApi });
+      const result = await chatSession.sendMessage(trimmed);
+      const aiText = result.response.text();
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch response');
+      if (!aiText) {
+        throw new Error('No response from Gemini API.');
       }
+
+      // 6. Deduplicate paragraphs
+      const deduplicatedText = (() => {
+        const paragraphs = aiText.split('\n').filter(p => p.trim().length > 0);
+        const seen = new Set<string>();
+        const unique: string[] = [];
+        for (const p of paragraphs) {
+          const normalized = p.trim();
+          if (!seen.has(normalized)) {
+            seen.add(normalized);
+            unique.push(p);
+          }
+        }
+        return unique.join('\n');
+      })();
+
+      // 7. Sanitize and update message list
+      const sanitizedResponseText = sanitizeResponse(deduplicatedText);
 
       const assistantMsg: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.response || 'No response received.',
+        content: sanitizedResponseText || 'No response received.',
         timestamp: new Date(),
       };
 
-      // Show text IMMEDIATELY
       setMessages((prev) => [...prev, assistantMsg]);
 
       // Play voice in background (non-blocking) only if voice is enabled
       if (isVoiceEnabled) {
-        speakText(assistantMsg.content); // no await — runs in background
+        speakText(assistantMsg.content);
       }
     } catch (err: any) {
-      console.error('Error fetching AI response:', err);
+      console.error('Error in client-side AI Chatbot:', err);
       setErrorText(err.message || 'Error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -225,49 +344,16 @@ export default function PublicAiChatbot({ festivalId }: PublicAiChatbotProps) {
     let cleanText = text.replace(/\[OPTION:.*?\]/g, '');
     cleanText = cleanText.replace(/[*#_~`]/g, '').trim();
 
-    const fallbackTTS = (fallbackText: string) => {
-      const synth = (window as any).speechSynthesis;
-      if (!synth) return;
+    const synth = (window as any).speechSynthesis;
+    if (!synth) return;
+    
+    try {
       synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(fallbackText);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = 'ml-IN';
       synth.speak(utterance);
-    };
-
-    if ((window as any)._currentAudio) {
-      (window as any)._currentAudio.pause();
-    }
-
-    try {
-      let baseUrl = '';
-      if (typeof window !== 'undefined') {
-        baseUrl = window.location.origin;
-      }
-      
-      const response = await fetch(`${baseUrl}/api/tts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleanText }),
-      });
-
-      if (!response.ok) {
-        throw new Error('TTS API failed');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new window.Audio(url);
-      
-      (window as any)._currentAudio = audio;
-      
-      audio.onended = () => {
-        URL.revokeObjectURL(url); // Clean up memory
-      };
-
-      await audio.play();
     } catch (e) {
-      console.warn('Backend TTS failed, trying fallback:', e);
-      fallbackTTS(cleanText);
+      console.warn('SpeechSynthesis failed:', e);
     }
   };
 

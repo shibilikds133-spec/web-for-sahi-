@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -83,9 +84,11 @@ export default function LoginScreen() {
         <View style={[styles.shell, isDesktop && styles.shellDesktop]}>
           <View style={[styles.heroPane, isDesktop && styles.heroPaneDesktop]}>
             <View style={styles.brandRow}>
-              <View style={styles.brandMark}>
-                <Text style={styles.brandMarkText}>SSF</Text>
-              </View>
+              <Image
+                source={{ uri: '/logo/image-removebg-preview.png' }}
+                style={{ width: 44, height: 44, marginRight: 8 }}
+                resizeMode="contain"
+              />
               <View>
                 <Text style={styles.brandTitle}>Kodasseri Sector</Text>
                 <Text style={styles.brandSub}>Sahithyolsav 2026</Text>
