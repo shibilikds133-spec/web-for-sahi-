@@ -27,6 +27,7 @@ import {
   Users,
   ShieldCheck,
   Lock,
+  AlertTriangle,
 } from 'lucide-react-native';
 
 export default function CheckIn() {
