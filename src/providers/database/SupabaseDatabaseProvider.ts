@@ -1196,6 +1196,56 @@ export class SupabaseDatabaseProvider implements DatabaseProvider {
     return { data, error: normalizeError(error) };
   }
 
+  async executeUpperPrimaryImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>> {
+    const { data, error } = await supabase.rpc('execute_upper_primary_import_chunk', {
+      p_tenant_id: payload.tenant_id,
+      p_festival_id: payload.festival_id,
+      p_session_id: payload.session_id,
+      p_participants: payload.participants
+    });
+    return { data, error: normalizeError(error) };
+  }
+
+  async executeLpImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>> {
+    const { data, error } = await supabase.rpc('execute_lp_import_chunk', {
+      p_tenant_id: payload.tenant_id,
+      p_festival_id: payload.festival_id,
+      p_session_id: payload.session_id,
+      p_participants: payload.participants
+    });
+    return { data, error: normalizeError(error) };
+  }
+
+  async executeHsImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>> {
+    const { data, error } = await supabase.rpc('execute_hs_import_chunk', {
+      p_tenant_id: payload.tenant_id,
+      p_festival_id: payload.festival_id,
+      p_session_id: payload.session_id,
+      p_participants: payload.participants
+    });
+    return { data, error: normalizeError(error) };
+  }
+
+  async executeHssImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>> {
+    const { data, error } = await supabase.rpc('execute_hss_import_chunk', {
+      p_tenant_id: payload.tenant_id,
+      p_festival_id: payload.festival_id,
+      p_session_id: payload.session_id,
+      p_participants: payload.participants
+    });
+    return { data, error: normalizeError(error) };
+  }
+
+  async executeGeneralImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>> {
+    const { data, error } = await supabase.rpc('execute_general_import_chunk', {
+      p_tenant_id: payload.tenant_id,
+      p_festival_id: payload.festival_id,
+      p_session_id: payload.session_id,
+      p_participants: payload.participants
+    });
+    return { data, error: normalizeError(error) };
+  }
+
   async executeScheduleImportChunk(payload: { tenant_id: string; festival_id: string; schedules: any[] }): Promise<QueryResult<any>> {
     const { data, error } = await supabase.rpc('execute_schedule_import_chunk', {
       p_tenant_id: payload.tenant_id,

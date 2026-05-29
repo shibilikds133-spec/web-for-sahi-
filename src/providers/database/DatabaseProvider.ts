@@ -134,5 +134,11 @@ export interface DatabaseProvider {
   createImportSession<T>(payload: Record<string, unknown>): Promise<QueryResult<T>>;
   updateImportSession<T>(id: string, updates: Record<string, unknown>): Promise<QueryResult<T>>;
   executeJuniorImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>>;
+  executeSeniorImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>>;
+  executeUpperPrimaryImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>>;
+  executeLpImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>>;
+  executeHsImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>>;
+  executeHssImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>>;
+  executeGeneralImportChunk(payload: { tenant_id: string; festival_id: string; session_id: string | null; participants: any[] }): Promise<QueryResult<any>>;
   validateChestNumbers(festivalId: string, chestNumbers: string[]): Promise<ListResult<{ chest_number: string; name: string }>>;
 }

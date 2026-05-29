@@ -31,6 +31,8 @@ import {
   Volume2
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { UserSearch } from 'lucide-react-native';
 
 interface Message {
   id: string;
@@ -44,6 +46,7 @@ interface PublicAiChatbotProps {
 }
 
 export default function PublicAiChatbot({ festivalId }: PublicAiChatbotProps) {
+  const router = useRouter();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -168,11 +171,12 @@ CRITICAL SAFETY RULES:
 5. Do not speculate on results. If a result is not in the context, say it is not available.
 
 CANDIDATE SEARCH RULES:
-- When a user asks for a candidate's profile by name, perform a similarity match.
-- If there are multiple candidates with the same or highly similar names (e.g. >= 90% similar), list ALL matching candidates.
+- When a user asks for a candidate's profile by name or chest number, provide the details found in the context.
+- ALWAYS include a clickable link to their full profile using this EXACT syntax: [LINK:/candidate/{Slug}|View Candidate Profile]
+  For example: [LINK:/candidate/ali-hassan-101|View Ali's Profile]
+- If there are multiple candidates with the same or highly similar names, list ALL matching candidates with their respective links.
 - Instead of asking them to type the chest number, provide clickable options for each matching candidate using this EXACT syntax: [OPTION:query_text|button_label]
   For example: [OPTION:Show profile for Chest No 101|Ali (Chest 101)]
-- When the user selects an option, provide the full profile details.
 - You can use this [OPTION:query|label] syntax anytime you want to give the user quick clickable buttons to choose from in your response!
 
 MULTILINGUAL CAPABILITIES:
@@ -483,13 +487,19 @@ Use the above CONTEXT to answer the user query accurately. If the context does n
                 
                 let cleanText = msg.content;
                 const options: { query: string; label: string }[] = [];
+                const links: { url: string; label: string }[] = [];
                 
                 if (!isUser) {
-                  const parts = msg.content.split(/(\[OPTION:.*?\|.*?\])/);
+                  const parts = msg.content.split(/(\[(?:OPTION|LINK):.*?\|.*?\])/);
                   const textParts = parts.map((part) => {
-                    const match = part.match(/\[OPTION:(.*?)\|(.*?)\]/);
-                    if (match) {
-                      options.push({ query: match[1], label: match[2] });
+                    const matchOpt = part.match(/\[OPTION:(.*?)\|(.*?)\]/);
+                    if (matchOpt) {
+                      options.push({ query: matchOpt[1], label: matchOpt[2] });
+                      return '';
+                    }
+                    const matchLink = part.match(/\[LINK:(.*?)\|(.*?)\]/);
+                    if (matchLink) {
+                      links.push({ url: matchLink[1], label: matchLink[2] });
                       return '';
                     }
                     return part;
@@ -530,13 +540,31 @@ Use the above CONTEXT to answer the user query accurately. If the context does n
                         <View style={styles.inlineChipsContainer}>
                           {options.map((opt, i) => (
                             <TouchableOpacity
-                              key={i}
+                              key={`opt-${i}`}
                               onPress={() => handleSend(opt.query)}
                               style={styles.inlineChipButton}
                               activeOpacity={0.8}
                               disabled={isLoading}
                             >
                               <Text style={[styles.inlineChipText, dStyles.inlineChipText]}>{opt.label}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                      {links.length > 0 && (
+                        <View style={styles.inlineChipsContainer}>
+                          {links.map((link, i) => (
+                            <TouchableOpacity
+                              key={`link-${i}`}
+                              onPress={() => {
+                                setIsOpen(false);
+                                router.push(link.url as any);
+                              }}
+                              style={[styles.inlineChipButton, { backgroundColor: '#0B8A5E', borderColor: '#10B981', flexDirection: 'row', alignItems: 'center', gap: 4 }]}
+                              activeOpacity={0.8}
+                            >
+                              <UserSearch size={12} color="#FFFFFF" />
+                              <Text style={[styles.inlineChipText, dStyles.inlineChipText, { color: '#FFFFFF' }]}>{link.label}</Text>
                             </TouchableOpacity>
                           ))}
                         </View>

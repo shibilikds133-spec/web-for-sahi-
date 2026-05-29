@@ -35,7 +35,7 @@ function ScheduleStatusBadge({ scheduleId }: { scheduleId: string }) {
   );
 }
 
-function ScheduleWorkflowBadges({ scheduleId, registrations = [] }: { scheduleId: string; registrations?: any[] }) {
+function ScheduleWorkflowBadges({ scheduleId, registrations = [], isShuffleLocked }: { scheduleId: string; registrations?: any[]; isShuffleLocked?: boolean }) {
   const { useJudgeSubmissionSummary, useResults } = useJudges();
   const { data: summary } = useJudgeSubmissionSummary(scheduleId);
   const { data: results } = useResults(scheduleId);
@@ -50,25 +50,25 @@ function ScheduleWorkflowBadges({ scheduleId, registrations = [] }: { scheduleId
   const activeRegs = registrations.filter((r: any) => r.status !== 'rejected');
   const verifiedRegs = activeRegs.filter((r: any) => r.is_verified);
   
-  const checkinDone = activeRegs.length > 0 && activeRegs.every((r: any) => r.is_verified);
-  const checkinPending = activeRegs.length > 0 && activeRegs.some((r: any) => !r.is_verified);
+  const checkinDone = (activeRegs.length > 0 && activeRegs.every((r: any) => r.is_verified)) || isShuffleLocked;
+  const checkinPending = activeRegs.length > 0 && activeRegs.some((r: any) => !r.is_verified) && !isShuffleLocked;
   
-  const codesShuffled = verifiedRegs.length > 0 && verifiedRegs.every((r: any) => r.code_letter !== null && r.code_letter !== undefined);
-  const codesPending = verifiedRegs.length > 0 && verifiedRegs.some((r: any) => r.code_letter === null || r.code_letter === undefined);
+  const codesShuffled = (verifiedRegs.length > 0 && verifiedRegs.every((r: any) => r.code_letter !== null && r.code_letter !== undefined)) || isShuffleLocked;
+  const codesPending = verifiedRegs.length > 0 && verifiedRegs.some((r: any) => r.code_letter === null || r.code_letter === undefined) && !isShuffleLocked;
 
   const badges: { label: string; bg: string; text: string }[] = [];
 
   // Check-in status (Malayalam highlighted text as requested)
   if (checkinDone) {
     badges.push({ label: 'Check-in Kazhinju', bg: 'bg-green-100 border border-green-200', text: 'text-green-700' });
-  } else if (checkinPending) {
-    badges.push({ label: 'Check-in Lazhinjava', bg: 'bg-amber-100 border border-amber-200', text: 'text-amber-700' });
+  } else if (checkinPending && !hasManualSubmitted && !hasInternalPublished && !allDone) {
+    badges.push({ label: 'Check-in Pending', bg: 'bg-amber-100 border border-amber-200', text: 'text-amber-700' });
   }
 
   // Code Letter status
   if (codesShuffled) {
     badges.push({ label: 'Codes Shuffled', bg: 'bg-blue-100 border border-blue-200', text: 'text-blue-700' });
-  } else if (codesPending) {
+  } else if (codesPending && !hasManualSubmitted && !hasInternalPublished && !allDone) {
     badges.push({ label: 'Codes Pending', bg: 'bg-gray-100 border border-gray-200', text: 'text-gray-500' });
   }
 
@@ -621,8 +621,15 @@ export default function ScheduleDashboard() {
                   {/* Edit / Delete buttons */}
                   <View className="flex-row items-center gap-x-2 shrink-0">
                     <TouchableOpacity 
-                      className="p-2 bg-gray-50 rounded-lg border border-gray-200"
-                      onPress={() => router.push(`/(admin)/schedule/${schedule.id}/edit` as any)}
+                      className={`p-2 bg-gray-50 rounded-lg border border-gray-200 ${schedule.is_shuffle_locked ? 'opacity-50' : ''}`}
+                      onPress={() => {
+                        if (schedule.is_shuffle_locked) {
+                          if (Platform.OS === 'web') window.alert('Cannot edit schedule after event is locked.');
+                          else Alert.alert('Locked', 'Cannot edit schedule after event is locked.');
+                          return;
+                        }
+                        router.push(`/(admin)/schedule/${schedule.id}/edit` as any);
+                      }}
                     >
                       <Edit size={14} color="#4B5563" />
                     </TouchableOpacity>
@@ -673,6 +680,7 @@ export default function ScheduleDashboard() {
               <ScheduleWorkflowBadges 
                 scheduleId={schedule.id} 
                 registrations={allRegistrations.filter((r: any) => r.item_id === schedule.item_id)} 
+                isShuffleLocked={schedule.is_shuffle_locked}
               />
 
               {/* Action buttons — 2×2 grid on mobile */}

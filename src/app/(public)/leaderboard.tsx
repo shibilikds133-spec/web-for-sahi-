@@ -772,6 +772,25 @@ export function PublicLeaderboardExperience({ page = 'landing' }: { page?: Publi
             </TouchableOpacity>
           </View>
         )}
+        {settingsQuery.data?.team_point_status && (
+          <View style={styles.teamPointBannerContainer}>
+            <LinearGradient
+              colors={['rgba(251, 191, 36, 0.15)', 'rgba(217, 119, 6, 0.05)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.teamPointBannerGlow}
+            />
+            <View style={styles.teamPointBannerContent}>
+              <View style={styles.teamPointBannerIconBox}>
+                <Trophy size={18} color="#FBBF24" />
+              </View>
+              <View style={styles.teamPointBannerTextCol}>
+                <Text style={styles.teamPointBannerTitle}>Official Team Point Status</Text>
+                <Text style={styles.teamPointBannerValue}>{settingsQuery.data.team_point_status}</Text>
+              </View>
+            </View>
+          </View>
+        )}
         {renderSearch()}
         <View style={styles.listCard}>
           <View style={styles.listHeader}>
@@ -2178,6 +2197,51 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_700Bold',
     color: '#FBBF24',
     fontSize: 11,
+  },
+  teamPointBannerContainer: {
+    marginHorizontal: 16,
+    marginTop: 0,
+    marginBottom: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  teamPointBannerGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  teamPointBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
+  },
+  teamPointBannerIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  teamPointBannerTextCol: {
+    flex: 1,
+  },
+  teamPointBannerTitle: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  teamPointBannerValue: {
+    color: '#FBBF24',
+    fontFamily: 'Poppins_900Black',
+    fontSize: 16,
+    marginTop: 2,
   },
 });
 

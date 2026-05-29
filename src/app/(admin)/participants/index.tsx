@@ -225,8 +225,23 @@ export default function ParticipantsList() {
           <TouchableOpacity onPress={() => router.push('/(admin)/participants/import-json' as any)} className="p-2 bg-orange-50 border border-orange-200 rounded-lg flex-row items-center gap-x-1">
             <Text className="font-poppins-bold text-orange-700 text-xs">JR Import</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(admin)/participants/import-up' as any)} className="p-2 bg-blue-50 border border-blue-200 rounded-lg flex-row items-center gap-x-1">
+            <Text className="font-poppins-bold text-blue-700 text-xs">UP Import</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/(admin)/participants/import-senior' as any)} className="p-2 bg-emerald-50 border border-emerald-200 rounded-lg flex-row items-center gap-x-1">
             <Text className="font-poppins-bold text-emerald-700 text-xs">SR Import</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(admin)/participants/import-lp' as any)} className="p-2 bg-indigo-50 border border-indigo-200 rounded-lg flex-row items-center gap-x-1">
+            <Text className="font-poppins-bold text-indigo-700 text-xs">LP Import</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(admin)/participants/import-hs' as any)} className="p-2 bg-purple-50 border border-purple-200 rounded-lg flex-row items-center gap-x-1">
+            <Text className="font-poppins-bold text-purple-700 text-xs">HS Import</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(admin)/participants/import-hss' as any)} className="p-2 bg-pink-50 border border-pink-200 rounded-lg flex-row items-center gap-x-1">
+            <Text className="font-poppins-bold text-pink-700 text-xs">HSS Import</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(admin)/participants/import-general' as any)} className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg flex-row items-center gap-x-1">
+            <Text className="font-poppins-bold text-yellow-700 text-xs">GEN Import</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/(admin)/participants/add')} className="p-2 bg-ssf-primary border border-ssf-primary rounded-lg flex-row items-center gap-x-2">
             <UserPlus size={20} color="white" />
@@ -254,6 +269,7 @@ export default function ParticipantsList() {
 
         <FilterList items={categories} selectedValue={selectedCategory} onSelect={setSelectedCategory} />
         <FilterList items={statuses} selectedValue={selectedStatus} onSelect={setSelectedStatus} />
+        <FilterList items={genders} selectedValue={selectedGender} onSelect={setSelectedGender} />
       </View>
 
       {/* Bulk action bar */}

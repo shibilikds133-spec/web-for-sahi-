@@ -124,6 +124,7 @@ export async function buildPublicFestivalContext(festivalId: string): Promise<st
     const participantMap = new Map<string, {
       name: string;
       chest_number: string | null;
+      profile_slug: string | null;
       items: string[];
       results: string[];
     }>();
@@ -134,6 +135,7 @@ export async function buildPublicFestivalContext(festivalId: string): Promise<st
         pt = {
           name: row.participant_name,
           chest_number: row.chest_number,
+          profile_slug: row.profile_slug,
           items: [],
           results: []
         };
@@ -188,7 +190,7 @@ ${participantMap.size > 0
   ? Array.from(participantMap.values()).map(p => {
       const itemsStr = p.items.length > 0 ? p.items.join(', ') : 'None';
       const resultsStr = p.results.length > 0 ? p.results.join('; ') : 'No public results yet';
-      return `- Candidate: ${p.name} (Chest No: ${p.chest_number || 'N/A'}) | Registered Items: ${itemsStr} | Public Results: ${resultsStr}`;
+      return `- Candidate: ${p.name} (Chest No: ${p.chest_number || 'N/A'}, Slug: ${p.profile_slug || 'N/A'}) | Registered Items: ${itemsStr} | Public Results: ${resultsStr}`;
     }).join('\n')
   : '- No participant records available.'}`;
 

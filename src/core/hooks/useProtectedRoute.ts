@@ -18,7 +18,7 @@ export function useProtectedRoute() {
 
     // --- Unauthenticated ---
     if (!user) {
-      if (!inPublicGroup && !inAuthGroup && segments[0] !== 'stage-management' && segments[0] !== 'candidate' && !inJudgeGroup) {
+      if (!inPublicGroup && !inAuthGroup && segments[0] !== 'stage-management' && segments[0] !== 'unit-dashboard' && segments[0] !== 'candidate' && !inJudgeGroup) {
         router.replace('/(public)');
       }
       return;

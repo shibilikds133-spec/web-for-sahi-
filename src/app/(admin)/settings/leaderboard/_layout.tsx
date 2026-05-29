@@ -113,6 +113,17 @@ const Sidebar = ({
 
           <TouchableOpacity
             onPress={() => {
+              router.push('/(admin)/settings/leaderboard/controls');
+              onClose?.();
+            }}
+            style={[styles.navItem, activeItem === 'controls' && styles.navItemActive, compact && styles.navItemCompact]}
+          >
+            <ShieldCheck size={20} color="#FFFFFF" />
+            {!compact && <Text style={activeItem === 'controls' ? styles.navTextActive : styles.navTextInactive}>Leaderboard Controls</Text>}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
               router.push('/(admin)/settings/leaderboard/item-results');
               onClose?.();
             }}
@@ -215,6 +226,7 @@ export default function LeaderboardLayout() {
     if (pathname.includes('item-results')) return 'item';
     if (pathname.includes('poster-studio')) return 'poster';
     if (pathname.includes('media-center')) return 'media-center';
+    if (pathname.includes('controls')) return 'controls';
     return 'unit';
   }, [pathname]);
 
@@ -253,6 +265,7 @@ export default function LeaderboardLayout() {
   const pageTitle = useMemo(() => {
     if (activeItem === 'individual') return 'Individual Rankings';
     if (activeItem === 'item') return 'Item Results';
+    if (activeItem === 'controls') return 'Leaderboard Controls';
     return 'Unit Rankings';
   }, [activeItem]);
 

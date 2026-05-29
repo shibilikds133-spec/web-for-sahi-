@@ -35,6 +35,7 @@ type OverlayField = {
   height: number;
   fontSize?: number;
   color?: string;
+  backgroundColor?: string;
   borderRadius?: number;
 };
 
@@ -117,7 +118,12 @@ const readTemplates = () => {
 
 const saveTemplates = (templates: ChestTemplate[]) => {
   if (canUseBrowserStorage) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+    } catch (e) {
+      console.error('Failed to save templates', e);
+      alert('Failed to save template. The image might be too large for browser storage. Please try uploading a smaller image or delete older templates.');
+    }
   }
 };
 
@@ -132,10 +138,14 @@ const saveIdMap = (key: string, value: Record<string, boolean>) => {
   }
 };
 
-const createQrUrl = (chestNumber: string, profileSlug: string, categoryCode: string, size: number) => {
+const createQrUrl = (chestNumber: string, profileSlug: string, categoryCode: string, size: number, color?: string, bgColor?: string) => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sahi.in';
   const qrData = encodeURIComponent(`${baseUrl}/candidate/${profileSlug}?chest=${chestNumber}&cat=${categoryCode}`);
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${qrData}&color=111827&bgcolor=FFFFFF&format=png`;
+  
+  const fg = (color || '#111827').replace('#', '');
+  const bg = bgColor && bgColor.trim() !== '' && bgColor !== 'transparent' ? bgColor.replace('#', '') : '0000';
+  
+  return `https://quickchart.io/qr?text=${qrData}&dark=${fg}&light=${bg}&margin=0&size=${size}&format=png`;
 };
 
 const formatParticipantName = (name?: string | null) => {
@@ -298,7 +308,7 @@ const ChestCard = ({
   const participantName = formatParticipantName(participant.name);
   const participantUnit = participant.organisations?.name || 'Unit Name';
   const qrSize = Math.max(64, Math.round(template.fields.qr.width * scale));
-  const qrUrl = createQrUrl(chestNumber, participant.profile_slug || participant.id, categoryCode, qrSize);
+  const qrUrl = createQrUrl(chestNumber, participant.profile_slug || participant.id, categoryCode, qrSize, template.fields.qr.color, template.fields.qr.backgroundColor);
 
   return (
     <View
@@ -421,11 +431,9 @@ const ChestCard = ({
           style={{
             width: template.fields.qr.width * scale,
             height: template.fields.qr.height * scale,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: template.fields.qr.backgroundColor || '#FFFFFF',
             padding: 5 * scale,
             borderRadius: (template.fields.qr.borderRadius ?? 8) * scale,
-            borderWidth: 1,
-            borderColor: '#E2E8F0',
             overflow: 'hidden',
           }}
         >
@@ -525,14 +533,38 @@ export default function ChestCardsPage() {
       input.onchange = () => {
         const file = input.files?.[0];
         if (!file) return;
+        
         const reader = new FileReader();
-        reader.onload = () => {
-          const backgroundUri = String(reader.result);
-          updateTemplate(template => ({
-            ...template,
-            backgroundUri,
-            updatedAt: new Date().toISOString(),
-          }));
+        reader.onload = (e) => {
+          const img = document.createElement('img');
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1240;
+            const MAX_HEIGHT = 1748;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+              const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedUri = canvas.toDataURL('image/jpeg', 0.6);
+              
+              updateTemplate(template => ({
+                ...template,
+                backgroundUri: compressedUri,
+                updatedAt: new Date().toISOString(),
+              }));
+            }
+          };
+          img.src = String(e.target?.result);
         };
         reader.readAsDataURL(file);
       };
@@ -714,21 +746,21 @@ export default function ChestCardsPage() {
                 </View>
 
                 <View className="gap-y-3">
-                  {(['x', 'y', 'width', 'height', 'fontSize', 'color', 'borderRadius'] as const).map(key => {
+                  {(['x', 'y', 'width', 'height', 'fontSize', 'color', 'backgroundColor', 'borderRadius'] as const).map(key => {
                     if (key === 'fontSize' && selectedField === 'qr') return null;
-                    if (key === 'color' && selectedField === 'qr') return null;
                     if (key === 'borderRadius' && selectedField !== 'qr') return null;
-                    const value = activeTemplate.fields[selectedField][key as keyof OverlayField] ?? (key === 'color' ? '#000000' : (key === 'borderRadius' ? 8 : 12));
+                    const value = activeTemplate.fields[selectedField][key as keyof OverlayField] ?? (key === 'color' ? '#000000' : (key === 'backgroundColor' ? '#FFFFFF' : (key === 'borderRadius' ? 8 : 12)));
                     
-                    if (key === 'color') {
+                    if (key === 'color' || key === 'backgroundColor') {
+                      const label = key === 'color' ? (selectedField === 'qr' ? 'QR Code Color (Hex)' : 'Text Color (Hex)') : 'Background Color (Hex)';
                       return (
                         <View key={key}>
-                          <Text className="font-poppins-bold text-xs text-ssf-text mb-1">Text Color (Hex)</Text>
+                          <Text className="font-poppins-bold text-xs text-ssf-text mb-1">{label}</Text>
                           <TextInput
                             value={String(value)}
-                            onChangeText={(val) => updateField(selectedField, { color: val })}
+                            onChangeText={(val) => updateField(selectedField, { [key]: val })}
                             className="bg-white border border-ssf-border px-3 py-2 rounded-lg font-poppins text-xs text-ssf-text"
-                            placeholder="#000000"
+                            placeholder={key === 'backgroundColor' ? 'transparent or #FFFFFF' : '#000000'}
                           />
                         </View>
                       );

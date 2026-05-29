@@ -43,12 +43,12 @@ export default function CheckIn() {
   const isLoadingSchedules = schedulesQuery.isLoading || settingsQuery.isLoading;
   const schedule = schedules.find((s: any) => s.id === scheduleId);
 
-  const { useScheduleRegistrations } = useJudges();
+  const { useItemRegistrations } = useParticipants();
   const {
     data: registrations,
     isLoading: isLoadingRegs,
     refetch,
-  } = useScheduleRegistrations(scheduleId);
+  } = useItemRegistrations(schedule?.item_id);
 
   const { role, is_superadmin } = useAuthStore();
   const { updateSchedule } = useSchedule();
@@ -473,59 +473,40 @@ export default function CheckIn() {
                     </View>
 
                     {/* Verify/Restore toggle */}
-                    {isShuffleLocked ? (
-                      isRejected ? (
-                        <View className="bg-red-50 border border-red-200 px-3 py-1 rounded-full flex-row items-center gap-x-1">
-                          <XCircle size={14} color="#EF4444" />
-                          <Text className="font-poppins-bold text-xs text-red-600">Rejected</Text>
-                        </View>
-                      ) : reg.is_verified ? (
-                        <View className="bg-green-50 border border-green-200 px-3 py-1 rounded-full flex-row items-center gap-x-1">
-                          <CheckCircle2 size={14} color="#16A34A" />
-                          <Text className="font-poppins-bold text-xs text-green-700">Verified</Text>
-                        </View>
-                      ) : (
-                        <View className="bg-amber-50 border border-amber-200 px-3 py-1 rounded-full flex-row items-center gap-x-1">
-                          <AlertTriangle size={14} color="#D97706" />
-                          <Text className="font-poppins-bold text-xs text-amber-700">Pending</Text>
-                        </View>
-                      )
+                    {isRejected ? (
+                      <TouchableOpacity
+                        disabled={isUpdating || isShuffleLocked}
+                        onPress={() => handleRestore(reg.id)}
+                        className={`flex-row items-center gap-x-1 px-3 py-1.5 rounded-full border bg-slate-50 border-slate-200 ${isShuffleLocked ? 'opacity-50' : ''}`}
+                      >
+                        <Text className="font-poppins-bold text-xs text-slate-600">Restore</Text>
+                      </TouchableOpacity>
                     ) : (
-                      isRejected ? (
-                        <TouchableOpacity
-                          disabled={isUpdating || isShuffleLocked}
-                          onPress={() => handleRestore(reg.id)}
-                          className={`flex-row items-center gap-x-1 px-3 py-1.5 rounded-full border bg-slate-50 border-slate-200 ${isShuffleLocked ? 'opacity-50' : ''}`}
-                        >
-                          <Text className="font-poppins-bold text-xs text-slate-600">Restore</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          disabled={isUpdating || isShuffleLocked}
-                          onPress={() => {
-                            if (reg.is_verified) {
-                              handleUnverify(reg.id);
-                            } else {
-                              // Manual verify — show the photo popup
-                              setVerifyModal({ reg, visible: true });
-                            }
-                          }}
-                          className={`flex-row items-center gap-x-1 px-3 py-1.5 rounded-full border ${
-                            reg.is_verified
-                              ? 'bg-green-50 border-green-200'
-                              : 'bg-gray-50 border-gray-200'
-                          } ${isShuffleLocked ? 'opacity-50' : ''}`}
-                        >
-                          {reg.is_verified ? (
-                            <CheckCircle2 size={16} color="#16A34A" />
-                          ) : (
-                            <Camera size={16} color="#9CA3AF" />
-                          )}
-                          <Text className={`font-poppins-bold text-xs ${reg.is_verified ? 'text-green-700' : 'text-gray-500'}`}>
-                            {reg.is_verified ? 'Verified' : 'Verify'}
-                          </Text>
-                        </TouchableOpacity>
-                      )
+                      <TouchableOpacity
+                        disabled={isUpdating || isShuffleLocked}
+                        onPress={() => {
+                          if (reg.is_verified) {
+                            handleUnverify(reg.id);
+                          } else {
+                            // Manual verify — show the photo popup
+                            setVerifyModal({ reg, visible: true });
+                          }
+                        }}
+                        className={`flex-row items-center gap-x-1 px-3 py-1.5 rounded-full border ${
+                          reg.is_verified
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-gray-50 border-gray-200'
+                        } ${isShuffleLocked ? 'opacity-50' : ''}`}
+                      >
+                        {reg.is_verified ? (
+                          <CheckCircle2 size={16} color="#16A34A" />
+                        ) : (
+                          <Camera size={16} color="#9CA3AF" />
+                        )}
+                        <Text className={`font-poppins-bold text-xs ${reg.is_verified ? 'text-green-700' : 'text-gray-500'}`}>
+                          {reg.is_verified ? 'Verified' : 'Verify'}
+                        </Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 );

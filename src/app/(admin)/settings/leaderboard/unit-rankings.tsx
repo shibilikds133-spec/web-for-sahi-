@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -80,7 +81,6 @@ const RankBadge = ({ rank }: { rank: number }) => {
 export default function UnitRankingsPage() {
   const { tenant_id } = useAuthStore();
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 1180;
   const isMobile = width < 760;
 
   // Load active festival ID
@@ -88,90 +88,9 @@ export default function UnitRankingsPage() {
   const { data: activeFestival, isLoading: isFestivalLoading } = useActiveFestival();
   const festivalId = activeFestival?.id;
 
-  // Load database settings
-  const { data: settings, isLoading: isSettingsLoading } = useGetLeaderboardSettings(festivalId);
-  const updateSettingsMutation = useUpdateLeaderboardSettings(tenant_id ?? '', festivalId ?? '');
-
-  // Local settings states (Applied on clicking "Apply Settings")
-  const [isPublicVisible, setIsPublicVisible] = useState(false);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
-  const [autoRefreshInterval, setAutoRefreshInterval] = useState(300);
-  const [showRankMovement, setShowRankMovement] = useState(true);
-  const [showTimestamps, setShowTimestamps] = useState(true);
-  const [showGradeSummary, setShowGradeSummary] = useState(true);
-  const [isFrozen, setIsFrozen] = useState(false);
-  const [previewVisibility, setPreviewVisibility] = useState('draft');
-  const [posterEnabled, setPosterEnabled] = useState(true);
-  const [certificateEnabled, setCertificateEnabled] = useState(false);
-  const [posterTopCount, setPosterTopCount] = useState(3);
-  const [showIndividualRankings, setShowIndividualRankings] = useState(true);
-
-  // Sync state with db loaded settings
-  React.useEffect(() => {
-    if (settings) {
-      setIsPublicVisible(settings.is_public_visible);
-      setAutoRefreshEnabled(settings.auto_refresh_enabled);
-      setAutoRefreshInterval(settings.auto_refresh_interval);
-      setShowRankMovement(settings.show_rank_movement);
-      setShowTimestamps(settings.show_timestamps);
-      setShowGradeSummary(settings.show_grade_summary);
-      setIsFrozen(settings.is_frozen);
-      setPreviewVisibility(settings.preview_visibility || 'draft');
-      setPosterEnabled(settings.poster_enabled);
-      setCertificateEnabled(settings.certificate_enabled);
-      setPosterTopCount(settings.poster_top_count || 3);
-      setShowIndividualRankings(settings.show_individual_rankings ?? true);
-    }
-  }, [settings]);
-
-  const buildSettingsPayload = (
-    overrides: Partial<LeaderboardSettings> = {},
-  ): Partial<LeaderboardSettings> => ({
-    is_public_visible: isPublicVisible,
-    auto_refresh_enabled: autoRefreshEnabled,
-    auto_refresh_interval: autoRefreshInterval,
-    show_rank_movement: showRankMovement,
-    show_timestamps: showTimestamps,
-    show_grade_summary: showGradeSummary,
-    is_frozen: isFrozen,
-    preview_visibility: previewVisibility,
-    poster_enabled: posterEnabled,
-    certificate_enabled: certificateEnabled,
-    poster_top_count: posterTopCount,
-    show_individual_rankings: showIndividualRankings,
-    ...overrides,
-  });
-
-  const handleApplySettings = async () => {
-    if (!tenant_id || !festivalId) {
-      alert('Active festival or tenant not found.');
-      return;
-    }
-    try {
-      await updateSettingsMutation.mutateAsync(buildSettingsPayload());
-      alert('Settings applied successfully!');
-    } catch (err: any) {
-      alert('Error updating settings: ' + err.message);
-    }
-  };
-
-  const persistSetting = async (payload: Partial<LeaderboardSettings>) => {
-    if (!tenant_id || !festivalId) {
-      alert('Active festival or tenant not found.');
-      return false;
-    }
-    try {
-      await updateSettingsMutation.mutateAsync(buildSettingsPayload(payload));
-      return true;
-    } catch (err: any) {
-      alert('Error updating settings: ' + err.message);
-      return false;
-    }
-  };
-
   const { data = [], isLoading: isLeaderboardLoading, isRefetching, refetch } = useAdminLeaderboard(tenant_id, festivalId);
 
-  const isLoading = isLeaderboardLoading || isFestivalLoading || isSettingsLoading;
+  const isLoading = isLeaderboardLoading || isFestivalLoading;
 
   const rows = useMemo<UiLeaderboardRow[]>(() => {
     return data.map((row, index) => ({
@@ -180,12 +99,6 @@ export default function UnitRankingsPage() {
       movement: 0,
     }));
   }, [data]);
-
-  const latestUpdate = rows.reduce<string | null>((latest, row) => {
-    if (!row.latest_published_at) return latest;
-    if (!latest || new Date(row.latest_published_at) > new Date(latest)) return row.latest_published_at;
-    return latest;
-  }, null);
 
   const renderTable = () => {
     if (isLoading) {
@@ -254,283 +167,27 @@ export default function UnitRankingsPage() {
   };
 
   return (
-    <>
-      <View style={[styles.workbench, !isDesktop && styles.workbenchStacked]}>
-        <View style={styles.tableCard}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardTitle}>Unit Rankings</Text>
-              <Text style={styles.cardSubTitle}>
-                Published team/unit scores, ordered by total points.
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => refetch()} style={styles.secondaryAction}>
-              <RefreshCw size={16} color={colors.teal} />
-              {!isMobile && (
-                <Text style={styles.secondaryActionText}>
-                  {isRefetching ? 'Refreshing' : 'Refresh'}
-                </Text>
-              )}
-            </TouchableOpacity>
+    <View style={styles.workbench}>
+      <View style={styles.tableCard}>
+        <View style={styles.cardHeader}>
+          <View>
+            <Text style={styles.cardTitle}>Unit Rankings</Text>
+            <Text style={styles.cardSubTitle}>
+              Published team/unit scores, ordered by total points.
+            </Text>
           </View>
-          {renderTable()}
-        </View>
-
-        <View style={[styles.controlPanel, !isDesktop && styles.controlPanelWide]}>
-          <Text style={styles.controlTitle}>Leaderboard Control</Text>
-          <Text style={styles.controlSub}>Manage live ranking publication behavior.</Text>
-
-          <View style={styles.controlList}>
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Public Visibility</Text>
-                <Text style={styles.controlHint}>Show leaderboard to the public</Text>
-              </View>
-              <Switch
-                value={isPublicVisible}
-                onValueChange={async (value) => {
-                  const previous = isPublicVisible;
-                  setIsPublicVisible(value);
-                  const saved = await persistSetting({ is_public_visible: value });
-                  if (!saved) setIsPublicVisible(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#99F6E4' }}
-                thumbColor={isPublicVisible ? colors.teal : '#FFFFFF'}
-              />
-            </View>
-
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Individual Rankings</Text>
-                <Text style={styles.controlHint}>Show individual rankings on the public leaderboard</Text>
-              </View>
-              <Switch
-                value={showIndividualRankings}
-                onValueChange={async (value) => {
-                  const previous = showIndividualRankings;
-                  setShowIndividualRankings(value);
-                  const saved = await persistSetting({ show_individual_rankings: value });
-                  if (!saved) setShowIndividualRankings(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#BAE6FD' }}
-                thumbColor={showIndividualRankings ? colors.cyan : '#FFFFFF'}
-              />
-            </View>
-
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Auto Refresh</Text>
-                <Text style={styles.controlHint}>Refresh rankings automatically</Text>
-              </View>
-              <Switch
-                value={autoRefreshEnabled}
-                onValueChange={async (value) => {
-                  const previous = autoRefreshEnabled;
-                  setAutoRefreshEnabled(value);
-                  const saved = await persistSetting({ auto_refresh_enabled: value });
-                  if (!saved) setAutoRefreshEnabled(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#BAE6FD' }}
-                thumbColor={autoRefreshEnabled ? colors.cyan : '#FFFFFF'}
-              />
-            </View>
-
-            {autoRefreshEnabled && (
-              <TouchableOpacity 
-                onPress={() => {
-                  const nextInterval = autoRefreshInterval === 60 ? 300 : autoRefreshInterval === 300 ? 900 : 60;
-                  setAutoRefreshInterval(nextInterval);
-                }}
-                style={styles.dropdown}
-              >
-                <View>
-                  <Text style={styles.controlHint}>Refresh interval</Text>
-                  <Text style={styles.dropdownValue}>
-                    {autoRefreshInterval >= 60 ? `Every ${autoRefreshInterval / 60} minutes` : `Every ${autoRefreshInterval} seconds`}
-                  </Text>
-                </View>
-                <ChevronDown size={18} color={colors.muted} />
-              </TouchableOpacity>
+          <TouchableOpacity onPress={() => refetch()} style={styles.secondaryAction}>
+            <RefreshCw size={16} color={colors.teal} />
+            {!isMobile && (
+              <Text style={styles.secondaryActionText}>
+                {isRefetching ? 'Refreshing' : 'Refresh'}
+              </Text>
             )}
-
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Freeze Leaderboard</Text>
-                <Text style={styles.controlHint}>Freeze rankings to pause movement</Text>
-              </View>
-              <Switch
-                value={isFrozen}
-                onValueChange={async (value) => {
-                  const previous = isFrozen;
-                  setIsFrozen(value);
-                  const saved = await persistSetting({ is_frozen: value });
-                  if (!saved) setIsFrozen(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#FCA5A5' }}
-                thumbColor={isFrozen ? '#EF4444' : '#FFFFFF'}
-              />
-            </View>
-
-            <TouchableOpacity 
-              onPress={() => {
-                setPreviewVisibility(previewVisibility === 'draft' ? 'public' : 'draft');
-              }}
-              style={styles.dropdown}
-            >
-              <View>
-                <Text style={styles.controlHint}>Preview Mode</Text>
-                <Text style={styles.dropdownValue}>{previewVisibility === 'draft' ? 'Draft Only' : 'Public Access'}</Text>
-              </View>
-              <ChevronDown size={18} color={colors.muted} />
-            </TouchableOpacity>
-
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Show Timestamps</Text>
-                <Text style={styles.controlHint}>Display latest update time</Text>
-              </View>
-              <Switch
-                value={showTimestamps}
-                onValueChange={async (value) => {
-                  const previous = showTimestamps;
-                  setShowTimestamps(value);
-                  const saved = await persistSetting({ show_timestamps: value });
-                  if (!saved) setShowTimestamps(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#99F6E4' }}
-                thumbColor={showTimestamps ? colors.teal : '#FFFFFF'}
-              />
-            </View>
-
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Grade Summary</Text>
-                <Text style={styles.controlHint}>Display overall grades count</Text>
-              </View>
-              <Switch
-                value={showGradeSummary}
-                onValueChange={async (value) => {
-                  const previous = showGradeSummary;
-                  setShowGradeSummary(value);
-                  const saved = await persistSetting({ show_grade_summary: value });
-                  if (!saved) setShowGradeSummary(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#99F6E4' }}
-                thumbColor={showGradeSummary ? colors.teal : '#FFFFFF'}
-              />
-            </View>
-
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Poster Generation</Text>
-                <Text style={styles.controlHint}>Allow poster downloads for units</Text>
-              </View>
-              <Switch
-                value={posterEnabled}
-                onValueChange={async (value) => {
-                  const previous = posterEnabled;
-                  setPosterEnabled(value);
-                  const saved = await persistSetting({ poster_enabled: value });
-                  if (!saved) setPosterEnabled(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#99F6E4' }}
-                thumbColor={posterEnabled ? colors.teal : '#FFFFFF'}
-              />
-            </View>
-
-            {posterEnabled && (
-              <TouchableOpacity 
-                onPress={() => {
-                  const nextCount = posterTopCount === 3 ? 5 : posterTopCount === 5 ? 10 : 3;
-                  setPosterTopCount(nextCount);
-                }}
-                style={styles.dropdown}
-              >
-                <View>
-                  <Text style={styles.controlHint}>Poster Top Rank Limit</Text>
-                  <Text style={styles.dropdownValue}>Top {posterTopCount} Units</Text>
-                </View>
-                <ChevronDown size={18} color={colors.muted} />
-              </TouchableOpacity>
-            )}
-
-            <View style={styles.controlRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.controlLabel}>Certificate Generation</Text>
-                <Text style={styles.controlHint}>Allow winners certificates</Text>
-              </View>
-              <Switch
-                value={certificateEnabled}
-                onValueChange={async (value) => {
-                  const previous = certificateEnabled;
-                  setCertificateEnabled(value);
-                  const saved = await persistSetting({ certificate_enabled: value });
-                  if (!saved) setCertificateEnabled(previous);
-                }}
-                disabled={updateSettingsMutation.isPending}
-                trackColor={{ false: '#CBD5E1', true: '#99F6E4' }}
-                thumbColor={certificateEnabled ? colors.teal : '#FFFFFF'}
-              />
-            </View>
-          </View>
-
-          <View style={styles.actionBlock}>
-            <Text style={styles.blockTitle}>Settings Actions</Text>
-            <TouchableOpacity 
-              onPress={handleApplySettings} 
-              style={[styles.primaryAction, updateSettingsMutation.isPending && { opacity: 0.7 }]}
-              disabled={updateSettingsMutation.isPending}
-            >
-              <Rocket size={17} color="#FFFFFF" />
-              <Text style={styles.primaryActionText}>
-                {updateSettingsMutation.isPending ? 'Applying...' : 'Apply Settings'}
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={[styles.blockTitle, { marginTop: 12 }]}>Manual Actions</Text>
-            <TouchableOpacity onPress={() => refetch()} style={styles.outlineAction}>
-              <RefreshCw size={17} color={colors.teal} />
-              <Text style={styles.outlineActionText}>
-                {isRefetching ? 'Recalculating...' : 'Recalculate Rankings'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.summaryBlock}>
-            <Text style={styles.blockTitle}>Data Summary</Text>
-            <View style={styles.summaryLine}>
-              <Text style={styles.summaryLabel}>Source</Text>
-              <Text style={styles.summaryValue}>Published results</Text>
-            </View>
-            <View style={styles.summaryLine}>
-              <Text style={styles.summaryLabel}>Visibility</Text>
-              <Text style={styles.summaryValue}>{isPublicVisible ? 'Live' : 'Paused'}</Text>
-            </View>
-            <View style={styles.summaryLine}>
-              <Text style={styles.summaryLabel}>Last update</Text>
-              <Text style={styles.summaryValue}>{formatDateTime(latestUpdate)}</Text>
-            </View>
-          </View>
+          </TouchableOpacity>
         </View>
+        {renderTable()}
       </View>
-
-      <View style={styles.infoStrip}>
-        <View style={styles.infoIcon}>
-          <ShieldCheck size={18} color={colors.teal} />
-        </View>
-        <Text style={styles.infoText}>
-          Leaderboard management displays unit/team rankings only. Individual participant
-          points are not exposed in this control panel.
-        </Text>
-      </View>
-    </>
+    </View>
   );
 }
 
@@ -773,6 +430,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_700Bold',
     fontSize: 12,
     marginTop: 2,
+  },
+  textInput: {
+    backgroundColor: '#F6FAFC',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: colors.text,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 13,
   },
   actionBlock: {
     marginTop: 14,

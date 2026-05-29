@@ -297,13 +297,12 @@ export default function MarkEntryPage() {
                         {Array.from({ length: c.max / 5 + 1 }, (_, i) => i * 5).map(val => (
                           <TouchableOpacity
                             key={val}
-                            disabled={entry?.is_final}
                             onPress={() => updateScore(reg.id, selectedJudge, c.key, val)}
                             className={`px-2.5 py-1 rounded-lg mb-1 border ${
                               (marks[reg.id]?.[selectedJudge]?.[c.key] ?? -1) === val
-                                ? (entry?.is_final ? 'bg-gray-400 border-gray-400' : 'bg-ssf-primary border-ssf-primary')
+                                ? 'bg-ssf-primary border-ssf-primary'
                                 : 'bg-gray-50 border-gray-200'
-                            } ${entry?.is_final ? 'opacity-80' : ''}`}
+                            }`}
                           >
                             <Text className={`font-poppins-bold text-xs ${
                               (marks[reg.id]?.[selectedJudge]?.[c.key] ?? -1) === val
