@@ -23,3 +23,12 @@ html, body, #root, #__next {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(16, 185, 129, 0.8);
 }
+
+/* Hide scrollbar utility for both Webkit (Safari, Chrome) and standards (Firefox, IE) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}

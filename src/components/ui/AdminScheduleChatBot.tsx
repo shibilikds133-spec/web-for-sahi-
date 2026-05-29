@@ -387,10 +387,9 @@ export function AdminScheduleChatBot({ schedules = [], venues = [], registration
                     <Send size={16} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      )}
+              </View>
+            </KeyboardAvoidingView>
+          )}
     </View>
   );
 }

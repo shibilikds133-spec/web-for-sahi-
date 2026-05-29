@@ -96,6 +96,7 @@ export default function PublicCandidateProfileScreen() {
         border: palette.borderYellow,
         glow: 'rgba(255, 223, 0, 0.18)',
       },
+      /* Hidden for now - to be published after Sahithyolsav
       {
         id: 'points',
         label: 'Public Points',
@@ -106,6 +107,7 @@ export default function PublicCandidateProfileScreen() {
         border: palette.borderYellow,
         glow: 'rgba(255, 223, 0, 0.18)',
       },
+      */
     ];
   }, [candidate]);
 
@@ -162,6 +164,7 @@ export default function PublicCandidateProfileScreen() {
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
+          className="no-scrollbar"
           style={styles.scroll}
           contentContainerStyle={[
             styles.content,
@@ -179,7 +182,10 @@ export default function PublicCandidateProfileScreen() {
             isDesktop && styles.heroDesktop,
             {
               ...Platform.select({
-                web: { boxShadow: '0 15px 35px rgba(0, 0, 0, 0.7), 0 5px 25px rgba(16, 185, 129, 0.2)' },
+                web: { 
+                  boxShadow: '0 15px 35px rgba(0, 0, 0, 0.7), 0 5px 25px rgba(16, 185, 129, 0.2)',
+                  backdropFilter: isMobile ? 'none' : 'blur(16px)'
+                },
                 default: { shadowColor: palette.green, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 12 }
               }) as any
             }
@@ -231,7 +237,10 @@ export default function PublicCandidateProfileScreen() {
                     styles.statCard, 
                     { 
                       ...Platform.select({
-                        web: { boxShadow: `0 12px 25px rgba(0, 0, 0, 0.65), 0 4px 15px ${stat.glow}` },
+                        web: { 
+                          boxShadow: `0 12px 25px rgba(0, 0, 0, 0.65), 0 4px 15px ${stat.glow}`,
+                          backdropFilter: isMobile ? 'none' : 'blur(16px)'
+                        },
                         default: { shadowColor: stat.tone, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10 }
                       }) as any
                     }
@@ -250,9 +259,13 @@ export default function PublicCandidateProfileScreen() {
           <View style={[styles.sections, isDesktop && styles.sectionsDesktop]}>
             <View style={[
               styles.sectionCard,
+              isDesktop && { flex: 1 },
               {
                 ...Platform.select({
-                  web: { boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 5px 20px rgba(16, 185, 129, 0.12)' },
+                  web: { 
+                    boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 5px 20px rgba(16, 185, 129, 0.12)',
+                    backdropFilter: isMobile ? 'none' : 'blur(16px)'
+                  },
                   default: { shadowColor: palette.green, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 12 }
                 }) as any
               }
@@ -286,9 +299,13 @@ export default function PublicCandidateProfileScreen() {
 
             <View style={[
               styles.sectionCard,
+              isDesktop && { flex: 1 },
               {
                 ...Platform.select({
-                  web: { boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 5px 20px rgba(255, 223, 0, 0.12)' },
+                  web: { 
+                    boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6), 0 5px 20px rgba(255, 223, 0, 0.12)',
+                    backdropFilter: isMobile ? 'none' : 'blur(16px)'
+                  },
                   default: { shadowColor: palette.yellow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 12 }
                 }) as any
               }
@@ -346,15 +363,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-    ...Platform.select({
-      web: {
-        height: '100vh',
-        overflowY: 'auto' as any,
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-      },
-      default: {},
-    }),
   },
   content: {
     padding: 18,
@@ -444,10 +452,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     padding: 24,
     gap: 18,
-    ...Platform.select({
-      web: { backdropFilter: 'blur(16px)' },
-      default: {},
-    }),
   },
   heroDesktop: {
     flexDirection: 'row',
@@ -583,10 +587,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     padding: 16,
-    ...Platform.select({
-      web: { backdropFilter: 'blur(16px)' },
-      default: {},
-    }),
   },
   statIcon: {
     width: 38,
@@ -618,16 +618,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   sectionCard: {
-    flex: 1,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     overflow: 'hidden',
-    ...Platform.select({
-      web: { backdropFilter: 'blur(16px)' },
-      default: {},
-    }),
   },
   sectionHeader: {
     minHeight: 56,
