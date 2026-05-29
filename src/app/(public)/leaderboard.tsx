@@ -1386,13 +1386,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   podiumPointsText: {
-    fontFamily: 'Poppins_400Regular',
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 10.5,
-    marginTop: 1,
+    fontFamily: 'Poppins_700Bold',
+    color: '#FBBF24',
+    fontSize: 14,
+    marginTop: 2,
+    textShadowColor: 'rgba(251, 191, 36, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   podiumPointsTextMobile: {
-    fontSize: 9,
+    fontSize: 11.5,
   },
   podiumCrownWrapper: {
     width: 32,
