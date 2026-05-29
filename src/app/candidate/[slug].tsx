@@ -161,6 +161,7 @@ export default function PublicCandidateProfileScreen() {
         style={styles.gradientBg}
       >
         <ScrollView
+          showsVerticalScrollIndicator={false}
           style={styles.scroll}
           contentContainerStyle={[
             styles.content,
@@ -345,6 +346,15 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+    ...Platform.select({
+      web: {
+        height: '100vh',
+        overflowY: 'auto' as any,
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      },
+      default: {},
+    }),
   },
   content: {
     padding: 18,

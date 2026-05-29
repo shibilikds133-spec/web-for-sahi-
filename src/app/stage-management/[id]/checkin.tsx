@@ -12,11 +12,12 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SsfCard } from '../../../components/ui/SsfCard';
 import { SsfButton } from '../../../components/ui/SsfButton';
-import { usePublicSchedule } from '../../../core/hooks/useSchedule';
+import { usePublicSchedule, useSchedule } from '../../../core/hooks/useSchedule';
 import { useParticipants } from '../../../core/hooks/useParticipants';
 import { useGetPublicLeaderboardSettings } from '../../../core/hooks/useLeaderboardSettings';
 import { useJudges } from '../../../core/hooks/useJudges';
 import { participantRepository } from '../../../lib/repositories/participantRepository';
+import { useAuthStore } from '../../../core/store/authStore';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -49,6 +50,9 @@ export default function CheckIn() {
     refetch,
   } = useScheduleRegistrations(scheduleId);
 
+  const { role, is_superadmin } = useAuthStore();
+  const { updateSchedule } = useSchedule();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -56,6 +60,25 @@ export default function CheckIn() {
     reg: any;
     visible: boolean;
   }>({ reg: null, visible: false });
+
+  const handleUnlock = async () => {
+    setIsUpdating(true);
+    try {
+      await updateSchedule({
+        id: scheduleId,
+        payload: {
+          is_shuffle_locked: false,
+          shuffle_locked_at: null,
+        }
+      });
+      refetch();
+    } catch (e: any) {
+      if (Platform.OS === 'web') window.alert('Error unlocking event: ' + e.message);
+      else Alert.alert('Error', e.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Web QR scanner state
   const videoRef = useRef<any>(null);
@@ -302,11 +325,22 @@ export default function CheckIn() {
         </View>
 
         {isShuffleLocked && (
-          <View className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex-row items-center gap-x-3">
-            <Lock size={20} color="#B45309" />
-            <Text className="font-poppins-bold text-amber-700 flex-1">
-              🔒 Event is locked. Check-in is now read-only.
-            </Text>
+          <View className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex-col gap-y-3">
+            <View className="flex-row items-center gap-x-3">
+              <Lock size={20} color="#B45309" />
+              <Text className="font-poppins-bold text-amber-700 flex-1">
+                Event is locked. Check-in is now read-only.
+              </Text>
+            </View>
+            {(role === 'admin' || is_superadmin) && (
+              <SsfButton 
+                label={isUpdating ? 'Unlocking...' : 'Unlock Event'} 
+                onPress={handleUnlock}
+                disabled={isUpdating}
+                size="sm"
+                className="bg-amber-600 border-amber-600 self-start"
+              />
+            )}
           </View>
         )}
 

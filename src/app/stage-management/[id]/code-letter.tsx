@@ -10,6 +10,7 @@ import { ArrowLeft, RefreshCw, Lock, AlertTriangle, XCircle, Edit2 } from 'lucid
 import { TextInput } from 'react-native';
 import { useGetPublicLeaderboardSettings } from '../../../core/hooks/useLeaderboardSettings';
 import { useJudges } from '../../../core/hooks/useJudges';
+import { useAuthStore } from '../../../core/store/authStore';
 
 export default function CodeLetterGeneration() {
   const { id } = useLocalSearchParams();
@@ -55,6 +56,8 @@ export default function CodeLetterGeneration() {
     return () => clearInterval(timer);
   }, [showLockModal, lockCountdown]);
 
+  const { role, is_superadmin } = useAuthStore();
+  
   const openLockModal = () => {
     setLockCountdown(10);
     setShowLockModal(true);
@@ -64,6 +67,29 @@ export default function CodeLetterGeneration() {
     if (isLocking) return;
     setShowLockModal(false);
     setLockCountdown(10);
+  };
+
+  const handleUnlock = async () => {
+    setIsLocking(true);
+    try {
+      await updateSchedule({
+        id: scheduleId,
+        payload: {
+          is_shuffle_locked: false,
+          shuffle_locked_at: null,
+        }
+      });
+      if (Platform.OS === 'web') {
+        window.alert('🔓 Event unlocked successfully.');
+      } else {
+        Alert.alert('Unlocked', 'Event unlocked successfully.');
+      }
+    } catch (e: any) {
+      if (Platform.OS === 'web') window.alert('Error unlocking event: ' + e.message);
+      else Alert.alert('Error', e.message);
+    } finally {
+      setIsLocking(false);
+    }
   };
 
 
@@ -224,9 +250,22 @@ export default function CodeLetterGeneration() {
         </View>
 
         {isShuffleLocked && (
-          <View className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex-row items-center gap-x-3">
-            <Lock size={20} color="#B45309" />
-            <Text className="font-poppins-bold text-amber-700">🔒 Code Letter Shuffle Locked</Text>
+          <View className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex-col gap-y-3">
+            <View className="flex-row items-center gap-x-3">
+              <Lock size={20} color="#B45309" />
+              <Text className="font-poppins-bold text-amber-700 flex-1">
+                🔒 Code Letter Shuffle Locked
+              </Text>
+            </View>
+            {(role === 'admin' || is_superadmin) && (
+              <SsfButton 
+                label={isLocking ? 'Unlocking...' : 'Unlock Event'} 
+                onPress={handleUnlock}
+                disabled={isLocking}
+                size="sm"
+                className="bg-amber-600 border-amber-600 self-start"
+              />
+            )}
           </View>
         )}
 
