@@ -18,7 +18,7 @@ export function useProtectedRoute() {
 
     // --- Unauthenticated ---
     if (!user) {
-      if (!inPublicGroup && !inAuthGroup) {
+      if (!inPublicGroup && !inAuthGroup && segments[0] !== 'stage-management') {
         router.replace('/(public)');
       }
       return;
