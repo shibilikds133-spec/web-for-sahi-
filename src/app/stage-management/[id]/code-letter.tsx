@@ -9,7 +9,6 @@ import { useGoBack } from '../../../core/hooks/useGoBack';
 import { ArrowLeft, RefreshCw, Lock, AlertTriangle, XCircle, Edit2 } from 'lucide-react-native';
 import { TextInput } from 'react-native';
 import { useGetPublicLeaderboardSettings } from '../../../core/hooks/useLeaderboardSettings';
-import { useJudges } from '../../../core/hooks/useJudges';
 import { useAuthStore } from '../../../core/store/authStore';
 
 export default function CodeLetterGeneration() {
@@ -27,8 +26,7 @@ export default function CodeLetterGeneration() {
   const schedule = schedules.find((s: any) => s.id === scheduleId);
 
   const { useItemRegistrations, generateCodeLetters, isGeneratingCodeLetters, updateCodeLetter, isUpdatingCodeLetter, useParticipantConflicts } = useParticipants();
-  const { useScheduleRegistrations } = useJudges();
-  const { data: registrations, isLoading: isLoadingRegs } = useScheduleRegistrations(scheduleId);
+  const { data: registrations, isLoading: isLoadingRegs } = useItemRegistrations(schedule?.item_id);
 
   const activeRegistrations = React.useMemo(() => {
     return registrations?.filter((r: any) => r.status !== 'rejected') || [];
