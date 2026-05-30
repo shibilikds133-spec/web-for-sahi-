@@ -378,6 +378,9 @@ export default function JudgesPage() {
                           {schedule.items?.item_code ? ` (${schedule.items.item_code})` : ''}
                         </Text>
                         {schedule.items?.item_name_ml && <Text className="font-poppins text-xs text-ssf-text-muted">{schedule.items.item_name_ml}</Text>}
+                        {schedule.items?.category_codes && (
+                          <Text className="font-poppins text-[10px] text-ssf-primary mt-1">{(schedule.items.category_codes as string[]).join(', ')}</Text>
+                        )}
                       </View>
                       <View className="bg-blue-100 px-2 py-0.5 rounded-full">
                         <Text className="font-poppins-bold text-[10px] text-blue-700">{schedule.venues?.name || 'No Venue'}</Text>
@@ -533,6 +536,7 @@ export default function JudgesPage() {
                     >
                       <Text className={`font-poppins-bold text-sm ${selectedScheduleId === s.id ? 'text-ssf-primary' : 'text-ssf-text'}`}>
                         {s.items?.item_name_ml ?? s.items?.item_name_en ?? 'Unknown'}
+                        {s.items?.category_codes ? ` - ${(s.items.category_codes as string[]).join(', ')}` : ''}
                       </Text>
                       <Text className="font-poppins text-xs text-ssf-text-muted mt-0.5">
                         {s.venues?.name} · {new Date(s.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
