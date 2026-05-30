@@ -642,6 +642,14 @@ export function PublicLeaderboardExperience({ page = 'landing' }: { page?: Publi
           <Award size={16} color={palette.gold} />
           <Text style={styles.kickerText}>Official public results board</Text>
         </View>
+        {settingsQuery.data?.ranking_mode === 'LIMITED' && settingsQuery.data?.item_limit && (
+          <View style={[styles.kicker, { marginTop: 8, backgroundColor: 'rgba(217, 119, 6, 0.15)', borderColor: 'rgba(217, 119, 6, 0.3)', borderWidth: 1 }]}>
+            <Sparkles size={14} color={palette.orange} />
+            <Text style={[styles.kickerText, { color: palette.orange }]}>
+              Unit Ranking Based On First {settingsQuery.data.item_limit} Published Items
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );

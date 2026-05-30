@@ -75,6 +75,8 @@ export default function LeaderboardControlsPage() {
   const [posterTopCount, setPosterTopCount] = useState(3);
   const [showIndividualRankings, setShowIndividualRankings] = useState(true);
   const [teamPointStatus, setTeamPointStatus] = useState<string>('');
+  const [rankingMode, setRankingMode] = useState<string>('ALL');
+  const [itemLimit, setItemLimit] = useState<string>('');
 
   // Sync state with db loaded settings
   React.useEffect(() => {
@@ -92,6 +94,8 @@ export default function LeaderboardControlsPage() {
       setPosterTopCount(settings.poster_top_count || 3);
       setShowIndividualRankings(settings.show_individual_rankings ?? true);
       setTeamPointStatus(settings.team_point_status || '');
+      setRankingMode(settings.ranking_mode || 'ALL');
+      setItemLimit(settings.item_limit ? settings.item_limit.toString() : '');
     }
   }, [settings]);
 
@@ -111,6 +115,8 @@ export default function LeaderboardControlsPage() {
     poster_top_count: posterTopCount,
     show_individual_rankings: showIndividualRankings,
     team_point_status: teamPointStatus || null,
+    ranking_mode: rankingMode,
+    item_limit: itemLimit && !isNaN(parseInt(itemLimit, 10)) ? parseInt(itemLimit, 10) : null,
     ...overrides,
   });
 
@@ -193,6 +199,78 @@ export default function LeaderboardControlsPage() {
                 trackColor={{ false: '#CBD5E1', true: '#BAE6FD' }}
                 thumbColor={showIndividualRankings ? colors.cyan : '#FFFFFF'}
               />
+            </View>
+
+            <View style={[styles.controlRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
+              <View style={{ marginBottom: 8 }}>
+                <Text style={styles.controlLabel}>Unit Ranking Publish Logic</Text>
+                <Text style={styles.controlHint}>Limit how many published items are included in the unit ranking</Text>
+              </View>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setRankingMode('ALL');
+                  setItemLimit('');
+                }}
+                style={[styles.dropdown, rankingMode === 'ALL' && { borderColor: colors.teal, backgroundColor: '#EAF7FA' }]}
+              >
+                <Text style={styles.dropdownValue}>All Completed Items</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setRankingMode('LIMITED');
+                  setItemLimit('5');
+                }}
+                style={[styles.dropdown, rankingMode === 'LIMITED' && itemLimit === '5' && { borderColor: colors.teal, backgroundColor: '#EAF7FA' }]}
+              >
+                <Text style={styles.dropdownValue}>First 5 Completed Items</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setRankingMode('LIMITED');
+                  setItemLimit('10');
+                }}
+                style={[styles.dropdown, rankingMode === 'LIMITED' && itemLimit === '10' && { borderColor: colors.teal, backgroundColor: '#EAF7FA' }]}
+              >
+                <Text style={styles.dropdownValue}>First 10 Completed Items</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setRankingMode('LIMITED');
+                  setItemLimit('15');
+                }}
+                style={[styles.dropdown, rankingMode === 'LIMITED' && itemLimit === '15' && { borderColor: colors.teal, backgroundColor: '#EAF7FA' }]}
+              >
+                <Text style={styles.dropdownValue}>First 15 Completed Items</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setRankingMode('LIMITED');
+                  setItemLimit('20');
+                }}
+                style={[styles.dropdown, rankingMode === 'LIMITED' && itemLimit === '20' && { borderColor: colors.teal, backgroundColor: '#EAF7FA' }]}
+              >
+                <Text style={styles.dropdownValue}>First 20 Completed Items</Text>
+              </TouchableOpacity>
+
+              <View style={[styles.dropdown, rankingMode === 'LIMITED' && !['5','10','15','20'].includes(itemLimit) && { borderColor: colors.teal, backgroundColor: '#EAF7FA' }]}>
+                <Text style={[styles.dropdownValue, { flex: 1 }]}>Custom Number</Text>
+                <TextInput
+                  style={[styles.textInput, { height: 32, paddingVertical: 0, width: 80, textAlign: 'center' }]}
+                  placeholder="e.g. 12"
+                  keyboardType="numeric"
+                  value={rankingMode === 'LIMITED' && !['5','10','15','20'].includes(itemLimit) ? itemLimit : ''}
+                  onFocus={() => {
+                    setRankingMode('LIMITED');
+                    if (['5','10','15','20'].includes(itemLimit)) setItemLimit('');
+                  }}
+                  onChangeText={setItemLimit}
+                />
+              </View>
             </View>
 
             <View style={[styles.controlRow, { flexDirection: 'column', alignItems: 'stretch' }]}>

@@ -259,18 +259,7 @@ export default function ResultsPage() {
       return;
     }
 
-    const unset = mode === 'direct' ? [] : Object.values(results).filter(r => !r.grade);
-    if (unset.length > 0) {
-      if (Platform.OS === 'web') {
-        window.alert(`Incomplete: ${unset.length} participant(s) still need a grade. Set grade "-" if not applicable.`);
-      } else {
-        Alert.alert(
-          'Incomplete',
-          `${unset.length} participant(s) still need a grade. Set grade "-" if not applicable.`
-        );
-      }
-      return;
-    }
+    const unset = [];
     
     // Lock guard for republishing
     if (published && !forceRepublishConfirmed) {
