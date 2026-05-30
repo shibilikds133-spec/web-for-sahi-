@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { SsfCard } from '../../components/ui/SsfCard';
 import { SsfButton } from '../../components/ui/SsfButton';
 import { useSchedule, usePublicSchedule, usePublicRegistrations } from '../../core/hooks/useSchedule';
-import { Calendar, MapPin, Clock, Search, X, Lock } from 'lucide-react-native';
+import { Calendar, MapPin, Clock, Search, X, Lock, Bell } from 'lucide-react-native';
 import { useGetPublicLeaderboardSettings } from '../../core/hooks/useLeaderboardSettings';
 
 function ScheduleWorkflowBadges({ registrations = [] }: { registrations?: any[] }) {
@@ -218,7 +218,15 @@ export default function StageManagementDashboard() {
 
   return (
     <ScrollView className="flex-1 bg-ssf-bg py-6 px-4">
-      <Text className="text-2xl font-poppins-black text-ssf-text mb-6">Stage Portal</Text>
+      <View className="flex-row justify-between items-center mb-6">
+        <Text className="text-2xl font-poppins-black text-ssf-text">Stage Portal</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/notifications' as any)}
+          className="p-2 bg-gray-100 rounded-full"
+        >
+          <Bell size={20} color="#374151" />
+        </TouchableOpacity>
+      </View>
       
       <View className="flex-row flex-wrap gap-3 mb-6">
         <View className="flex-1 min-w-[140px] bg-ssf-primary p-4 rounded-xl flex-row items-center justify-between">

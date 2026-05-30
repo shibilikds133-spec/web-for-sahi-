@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Shield, Layers, Users, LogOut, FileText, Globe, ChevronRight, Activity } from 'lucide-react-native';
+import { Shield, Layers, Users, LogOut, FileText, Globe, ChevronRight, Activity, Settings, Bell, Trophy } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '../../core/store/authStore';
@@ -91,6 +91,30 @@ export default function SuperadminDashboard() {
       route: null,
       badge: 'Soon',
       delay: 300,
+    },
+    {
+      title: 'Festival Settings',
+      desc: 'Manage global scoring rules and items',
+      icon: <Settings size={26} color="#38BDF8" />,
+      route: '/(admin)/settings',
+      badge: null,
+      delay: 400,
+    },
+    {
+      title: 'Communication Center',
+      desc: 'Send notifications across all tenants',
+      icon: <Bell size={26} color="#F472B6" />,
+      route: '/(admin)/communication',
+      badge: null,
+      delay: 500,
+    },
+    {
+      title: 'Leaderboard Management',
+      desc: 'Control visibility and calculate results',
+      icon: <Trophy size={26} color="#FBBF24" />,
+      route: '/(admin)/settings/leaderboard',
+      badge: null,
+      delay: 600,
     },
   ];
 

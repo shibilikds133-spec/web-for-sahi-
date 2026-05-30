@@ -12,13 +12,13 @@ export function useProtectedRoute() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inAdminGroup = segments[0] === '(admin)';
-    const inJudgeGroup = segments[0] === '(judge)';
+    const inJudgeGroup = segments[0] === 'judge';
     const inSuperGroup = segments[0] === '(super)';
     const inPublicGroup = segments[0] === '(public)';
 
     // --- Unauthenticated ---
     if (!user) {
-      if (!inPublicGroup && !inAuthGroup && segments[0] !== 'stage-management' && segments[0] !== 'candidate' && !inJudgeGroup) {
+      if (!inPublicGroup && !inAuthGroup && segments[0] !== 'stage-management' && segments[0] !== 'candidate' && !inJudgeGroup && segments[0] !== 'notifications') {
         router.replace('/(public)');
       }
       return;
@@ -32,7 +32,7 @@ export function useProtectedRoute() {
       } else if (role === 'admin') {
         router.replace('/(admin)');
       } else if (role === 'judge') {
-        router.replace('/(judge)');
+        router.replace('/judge');
       } else {
         router.replace('/(public)');
       }

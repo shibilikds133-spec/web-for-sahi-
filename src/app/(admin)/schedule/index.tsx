@@ -56,6 +56,11 @@ function ScheduleWorkflowBadges({ scheduleId, registrations = [], isShuffleLocke
   const codesShuffled = (verifiedRegs.length > 0 && verifiedRegs.every((r: any) => r.code_letter !== null && r.code_letter !== undefined)) || isShuffleLocked;
   const codesPending = verifiedRegs.length > 0 && verifiedRegs.some((r: any) => r.code_letter === null || r.code_letter === undefined) && !isShuffleLocked;
 
+  const rows = (summary as any[]) ?? [];
+  const totalSubmitted = rows.reduce((acc: number, j: any) => acc + Number(j.submitted_count), 0);
+  const totalExpected = rows.reduce((acc: number, j: any) => acc + Number(j.total_assigned), 0);
+  const allDone = rows.length > 0 && rows.every((j: any) => Number(j.submitted_count) >= Number(j.total_assigned) && Number(j.total_assigned) > 0);
+
   const badges: { label: string; bg: string; text: string }[] = [];
 
   // Check-in status (Malayalam highlighted text as requested)
@@ -78,11 +83,6 @@ function ScheduleWorkflowBadges({ scheduleId, registrations = [], isShuffleLocke
   if (hasInternalPublished) {
     badges.push({ label: 'Published to Admin Leaderboard', bg: 'bg-blue-100 border border-blue-200', text: 'text-blue-700' });
   }
-
-  const rows = (summary as any[]) ?? [];
-  const totalSubmitted = rows.reduce((acc: number, j: any) => acc + Number(j.submitted_count), 0);
-  const totalExpected = rows.reduce((acc: number, j: any) => acc + Number(j.total_assigned), 0);
-  const allDone = rows.length > 0 && rows.every((j: any) => Number(j.submitted_count) >= Number(j.total_assigned) && Number(j.total_assigned) > 0);
 
   if (!badges.length && !rows.length) return null;
 

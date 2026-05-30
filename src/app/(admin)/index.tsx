@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SsfCard } from '../../components/ui/SsfCard';
 import { SsfButton } from '../../components/ui/SsfButton';
 import { useAuthStore } from '../../core/store/authStore';
@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAdminDashboard } from '../../core/hooks/useAdminDashboard';
+import { Bell } from 'lucide-react-native';
 
 export default function AdminDashboard() {
   const { logout, tenant_id } = useAuthStore();
@@ -57,7 +58,12 @@ export default function AdminDashboard() {
                 {orgData?.name ?? 'Dashboard'}
               </Text>
             </View>
-            <SsfButton label="Logout" variant="outline" size="sm" style={{ borderColor: '#fff' }} onPress={logout} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity onPress={() => router.push('/notifications' as any)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' }}>
+                <Bell size={20} color="#fff" />
+              </TouchableOpacity>
+              <SsfButton label="Logout" variant="outline" size="sm" style={{ borderColor: '#fff' }} onPress={logout} />
+            </View>
           </View>
           <Text style={{ color: '#F8FAFC', opacity: 0.8, fontFamily: 'Poppins_400Regular', marginTop: 8 }}>Manage your festival operations</Text>
         </LinearGradient>
@@ -112,15 +118,25 @@ export default function AdminDashboard() {
                 onPress={() => router.push('/(admin)/settings')}
               />
               <SsfButton
+                label="Communication Center"
+                variant="outline"
+                onPress={() => router.push('/(admin)/communication')}
+              />
+              <SsfButton
                 label="Judge Management"
                 variant="outline"
                 onPress={() => router.push('/(admin)/judges' as any)}
               />
               <SsfButton
+                label="Leaderboard Management"
+                variant="outline"
+                onPress={() => router.push('/(admin)/settings/leaderboard')}
+              />
+              <SsfButton
                 label="📱 Open Judge Portal"
                 variant="primary"
                 style={{ backgroundColor: '#1B6B3A' }}
-                onPress={() => router.push('/(judge)' as any)}
+                onPress={() => router.push('/judge' as any)}
               />
             </View>
           </SsfCard>

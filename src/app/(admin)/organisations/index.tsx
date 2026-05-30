@@ -5,7 +5,7 @@ import { SsfCard } from '../../../components/ui/SsfCard';
 import { SsfButton } from '../../../components/ui/SsfButton';
 import { SsfInput } from '../../../components/ui/SsfInput';
 import { useOrganisations } from '../../../core/hooks/useOrganisations';
-import { ArrowLeft, Plus, Building2, KeyRound, User, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Plus, Building2, KeyRound, User, Trash2, ExternalLink } from 'lucide-react-native';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 
 export default function SubOrganisationsManager() {
@@ -123,6 +123,12 @@ export default function SubOrganisationsManager() {
                           {org.org_type || 'UNIT'}
                         </Text>
                       </View>
+                      <TouchableOpacity
+                        onPress={() => router.push(`/unit-profile/${org.id}`)}
+                        style={{ backgroundColor: '#EFF6FF', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#BFDBFE' }}
+                      >
+                        <ExternalLink size={16} color="#3B82F6" />
+                      </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleDeleteOrg(org)}
                         style={{ backgroundColor: '#FEF2F2', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' }}

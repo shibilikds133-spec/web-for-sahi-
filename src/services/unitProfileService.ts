@@ -11,7 +11,6 @@ export type UnitParticipantRow = {
   registrations: {
     id: string;
     status: string;
-    is_present: boolean | null;
     item_id: string;
     item: {
       name: string;
@@ -46,61 +45,46 @@ const throwIfError = (error: { message: string } | null, dataError?: string) => 
 
 export const unitProfileService = {
   async getUnitProfile(unitId: string): Promise<UnitProfileData | null> {
-    // Fetch organization info
-    const { data: orgData, error: orgError } = await supabase
-      .from('organisations')
-      .select('id, name, parent_id')
-      .eq('id', unitId)
-      .single();
+    const { data, error } = await supabase.rpc('get_public_unit_profile', {
+      p_unit_id: unitId,
+    });
 
-    if (orgError) {
-      if (orgError.code === 'PGRST116') return null; // Not found
-      throwIfError(orgError);
+    if (error) {
+      throwIfError(error);
     }
 
-    // Fetch participants with their registrations and results
-    const { data: participantsData, error: partsError } = await supabase
-      .from('participants')
-      .select(`
-        id, name, chest_number, category_code, profile_slug, status, photo_url,
-        registrations (
-          id, status, is_present, item_id,
-          item:items (name, name_ml),
-          results (rank, grade, points_awarded)
-        )
-      `)
-      .eq('organisation_id', unitId);
+    if (!data) return null;
 
-    throwIfError(partsError);
-
-    const participants = (participantsData || []) as any[];
+    const profileData = data as any;
+    const participants = profileData.participants || [];
 
     let totalRegistrations = 0;
     let totalPresent = 0;
-    let totalAbsent = 0;
     let totalPending = 0;
+    let totalMissedItems = 0;
 
-    participants.forEach((p) => {
+    participants.forEach((p: any) => {
       p.registrations = p.registrations || [];
+      const isParticipantRejected = p.status === 'rejected';
+
       p.registrations.forEach((r: any) => {
         totalRegistrations++;
-        if (r.is_present === true) totalPresent++;
-        else if (r.is_present === false) totalAbsent++;
-        else totalPending++;
+        
+        if (isParticipantRejected || r.status === 'rejected') {
+          totalMissedItems++;
+        }
       });
     });
 
     return {
-      id: orgData.id,
-      name: orgData.name,
-      parent_id: orgData.parent_id,
+      id: profileData.id,
+      name: profileData.name,
+      parent_id: profileData.parent_id,
       participants: participants as UnitParticipantRow[],
       stats: {
         totalParticipants: participants.length,
         totalRegistrations,
-        totalPresent,
-        totalAbsent,
-        totalPending,
+        totalMissedItems,
       },
     };
   },

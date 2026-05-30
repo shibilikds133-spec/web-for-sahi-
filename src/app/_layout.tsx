@@ -11,8 +11,9 @@ import { Montserrat_300Light, Montserrat_700Bold } from '@expo-google-fonts/mont
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useProtectedRoute } from '../core/hooks/useProtectedRoute';
-
 import { useAuthStore } from '../core/store/authStore';
+import { NotificationProvider } from '../core/contexts/NotificationContext';
+import { NotificationToast } from '../components/ui/NotificationToast';
 
 export const unstable_settings = {
  anchor: '(public)',
@@ -64,8 +65,11 @@ export default function RootLayout() {
  return (
  <QueryClientProvider client={queryClient}>
  <ThemeProvider value={CustomLightTheme}>
+ <NotificationProvider>
+ <NotificationToast />
  <LayoutContent />
  <StatusBar style="auto" />
+ </NotificationProvider>
  </ThemeProvider>
  </QueryClientProvider>
  );

@@ -38,6 +38,8 @@ import { usePublicLeaderboard, usePublicPublishedResults } from '../../core/hook
 import { useGetPublicLeaderboardSettings } from '../../core/hooks/useLeaderboardSettings';
 import { usePublicSchedule, usePublicRegistrations } from '../../core/hooks/useSchedule';
 import PublicAiChatbot from '../../components/leaderboard/PublicAiChatbot';
+import { useAuthStore } from '../../core/store/authStore';
+import { Bell } from 'lucide-react-native';
 
 type ActiveTab = 'organisations' | 'individuals';
 type Breakpoint = 'desktop' | 'tablet' | 'mobile';
@@ -281,6 +283,7 @@ export function PublicLeaderboardExperience({ page = 'landing' }: { page?: Publi
   const isMobile = breakpoint === 'mobile';
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('organisations');
+  const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [visibleCounts, setVisibleCounts] = useState<Record<PublicLeaderboardPage, number>>({
@@ -464,6 +467,12 @@ export function PublicLeaderboardExperience({ page = 'landing' }: { page?: Publi
   const renderNav = () => (
     <View style={styles.navBarGlass}>
       <Text style={styles.navBarText}>Sahithyolsav</Text>
+      <TouchableOpacity
+        onPress={() => router.push('/notifications' as any)}
+        style={{ padding: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20 }}
+      >
+        <Bell size={18} color="#FFF" />
+      </TouchableOpacity>
     </View>
   );
 
@@ -1109,8 +1118,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     marginBottom: 28,
     ...Platform.select({

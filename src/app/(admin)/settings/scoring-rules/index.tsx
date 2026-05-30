@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useGoBack } from '../../../../core/hooks/useGoBack';
-import { ArrowLeft, Plus, Settings2, Edit } from 'lucide-react-native';
+import { ArrowLeft, Plus, Settings2, Edit, UploadCloud, X } from 'lucide-react-native';
 import { SsfCard } from '../../../../components/ui/SsfCard';
+import { SsfButton } from '../../../../components/ui/SsfButton';
 import { useAuthStore } from '../../../../core/store/authStore';
 import { scoringRuleRepository } from '../../../../lib/repositories/scoringRuleRepository';
 
 export default function ScoringRulesList() {
   const router = useRouter();
   const goBack = useGoBack('/(admin)/settings');
-  const { session } = useAuthStore();
-  const tenantId = session?.user?.tenant_id;
+  const { tenant_id } = useAuthStore();
+  const tenantId = tenant_id;
 
   const [rules, setRules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [jsonText, setJsonText] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadRules();
@@ -29,6 +33,81 @@ export default function ScoringRulesList() {
       console.error('Error loading rules', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    try {
+      if (!jsonText.trim()) {
+        Alert.alert('Error', 'Please paste valid JSON');
+        return;
+      }
+      const parsed = JSON.parse(jsonText);
+      if (!Array.isArray(parsed)) {
+        Alert.alert('Error', 'JSON must be an array of rules');
+        return;
+      }
+
+      setUploading(true);
+      
+      // We will loop over parsed and upsert based on event_name
+      for (const rule of parsed) {
+        // Find if this rule already exists
+        const existing = rules.find(r => 
+          r.event_name.toLowerCase() === rule.event_name.toLowerCase() && 
+          r.tenant_id === tenantId
+        );
+
+        let savedRuleId;
+
+        const payload = {
+          event_name: rule.event_name,
+          event_name_ml: rule.event_name_ml || null,
+          total_marks: rule.total_marks || 100,
+          time_limit: rule.time_limit || null,
+          guidelines: rule.guidelines || null,
+          tenant_id: tenantId, // Custom for this tenant
+          is_default: false
+        };
+
+        if (existing) {
+          await scoringRuleRepository.updateRule(existing.id, payload);
+          savedRuleId = existing.id;
+          
+          // delete old criteria
+          const oldCriteriaIds = (existing.scoring_criteria || []).map((c: any) => c.id);
+          for (const cid of oldCriteriaIds) {
+            await scoringRuleRepository.deleteCriterion(cid);
+          }
+        } else {
+          const { data, error } = await scoringRuleRepository.createRule(payload);
+          if (error) throw error;
+          savedRuleId = data.id;
+        }
+
+        // Add criteria
+        if (Array.isArray(rule.criteria)) {
+          for (let i = 0; i < rule.criteria.length; i++) {
+            const c = rule.criteria[i];
+            await scoringRuleRepository.createCriterion({
+              rule_id: savedRuleId,
+              name: c.name,
+              marks: parseInt(c.marks) || 0,
+              sort_order: c.sort_order ?? i,
+            });
+          }
+        }
+      }
+
+      Alert.alert('Success', 'Rules uploaded successfully');
+      setShowUploadModal(false);
+      setJsonText('');
+      setLoading(true);
+      loadRules();
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Invalid JSON format');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -54,13 +133,22 @@ export default function ScoringRulesList() {
         <ScrollView className="flex-1 px-4 pt-4">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="font-poppins-bold text-ssf-text text-lg">Event Rules</Text>
-            <TouchableOpacity 
-              onPress={() => router.push('/(admin)/settings/scoring-rules/new' as any)}
-              className="flex-row items-center bg-ssf-primary/10 px-3 py-1.5 rounded-full"
-            >
-              <Plus size={16} color="#1B6B3A" />
-              <Text className="font-poppins-bold text-ssf-primary text-xs ml-1">Add Custom</Text>
-            </TouchableOpacity>
+            <View className="flex-row gap-x-2">
+              <TouchableOpacity 
+                onPress={() => setShowUploadModal(true)}
+                className="flex-row items-center bg-ssf-primary/10 px-3 py-1.5 rounded-full"
+              >
+                <UploadCloud size={16} color="#1B6B3A" />
+                <Text className="font-poppins-bold text-ssf-primary text-xs ml-1">Upload JSON</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => router.push('/(admin)/settings/scoring-rules/new' as any)}
+                className="flex-row items-center bg-ssf-primary/10 px-3 py-1.5 rounded-full"
+              >
+                <Plus size={16} color="#1B6B3A" />
+                <Text className="font-poppins-bold text-ssf-primary text-xs ml-1">Add Custom</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {rules.map((rule) => (
@@ -122,6 +210,46 @@ export default function ScoringRulesList() {
           <View className="h-20" />
         </ScrollView>
       )}
+
+      {/* Upload JSON Modal */}
+      <Modal visible={showUploadModal} transparent animationType="slide">
+        <View className="flex-1 bg-black/50 justify-center px-4">
+          <View className="bg-white rounded-3xl p-5 max-h-[80%]">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="font-poppins-bold text-lg text-ssf-text">Upload Rules JSON</Text>
+              <TouchableOpacity onPress={() => setShowUploadModal(false)}>
+                <X size={24} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+            <Text className="font-poppins text-xs text-gray-500 mb-3">
+              Paste the generated JSON array containing event_name, total_marks, time_limit, guidelines, and criteria.
+            </Text>
+            <TextInput
+              className="bg-gray-50 border border-gray-200 rounded-xl p-4 font-poppins text-xs h-64 text-ssf-text"
+              multiline
+              textAlignVertical="top"
+              placeholder='[ { "event_name": "Speech", "criteria": [...] } ]'
+              value={jsonText}
+              onChangeText={setJsonText}
+            />
+            <View className="mt-4 flex-row gap-x-3">
+              <TouchableOpacity 
+                className="flex-1 bg-gray-100 py-3 rounded-xl items-center"
+                onPress={() => setShowUploadModal(false)}
+              >
+                <Text className="font-poppins-bold text-gray-600">Cancel</Text>
+              </TouchableOpacity>
+              <View className="flex-1">
+                <SsfButton 
+                  label="Import" 
+                  onPress={handleUpload} 
+                  isLoading={uploading}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

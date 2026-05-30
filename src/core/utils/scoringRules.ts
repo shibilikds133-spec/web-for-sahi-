@@ -10,6 +10,7 @@ export interface ItemRule {
   event_name_ml?: string;
   total_marks: number;
   time_limit?: string;
+  guidelines?: string;
   criteria: ScoringCriterion[];
   is_default?: boolean;
 }
@@ -31,6 +32,7 @@ export const getScoringRulesForItem = async (
     event_name_ml: rule.event_name_ml,
     total_marks: rule.total_marks,
     time_limit: rule.time_limit,
+    guidelines: rule.guidelines,
     is_default: rule.is_default,
     criteria: (rule.scoring_criteria || [])
       .sort((a: any, b: any) => a.sort_order - b.sort_order)

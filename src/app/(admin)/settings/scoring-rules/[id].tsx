@@ -13,8 +13,8 @@ export default function EditScoringRule() {
   const isNew = ruleId === 'new';
   
   const router = useRouter();
-  const { session } = useAuthStore();
-  const tenantId = session?.user?.tenant_id;
+  const { tenant_id } = useAuthStore();
+  const tenantId = tenant_id;
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -24,6 +24,7 @@ export default function EditScoringRule() {
     event_name_ml: '',
     total_marks: '100',
     time_limit: '',
+    guidelines: '',
     is_default: false,
     tenant_id: tenantId,
   });
@@ -78,6 +79,7 @@ export default function EditScoringRule() {
         event_name_ml: rule.event_name_ml || null,
         total_marks: expectedTotal,
         time_limit: rule.time_limit || null,
+        guidelines: rule.guidelines || null,
         tenant_id: rule.is_default && !tenantId ? null : tenantId, // Only keep null if superadmin editing default
       };
 
@@ -216,6 +218,19 @@ export default function EditScoringRule() {
                 placeholder="e.g. 5m"
               />
             </View>
+          </View>
+
+          <View className="mb-1">
+            <Text className="font-poppins text-sm text-ssf-text-muted mb-1">Guidelines (കുറിപ്പുകൾ)</Text>
+            <TextInput
+              value={rule.guidelines || ''}
+              onChangeText={(t) => setRule({ ...rule, guidelines: t })}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-poppins text-ssf-text min-h-[100px]"
+              placeholder="Enter guidelines for judges here..."
+            />
           </View>
         </SsfCard>
 
