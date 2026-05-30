@@ -102,6 +102,8 @@ export interface DatabaseProvider {
   listJudgeTokens<T>(scheduleId: string): Promise<ListResult<T>>;
   getJudgeSubmissionSummary<T>(scheduleId: string): Promise<ListResult<T>>;
   getScheduleReadiness<T>(scheduleId: string): Promise<ListResult<T>>;
+  logJudgeActivity(payload: { judgeId: string; scheduleId: string; tenantId: string; actionType: string; actionDetails: Record<string, any> }): Promise<QueryResult<void>>;
+
 
   // Leaderboard Settings & Poster Template Methods
   getLeaderboardSettings<T>(festivalId: string): Promise<QueryResult<T>>;

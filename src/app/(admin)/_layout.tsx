@@ -25,6 +25,7 @@ export default function AdminLayout() {
         <Stack.Screen name="organisations/index" />
         <Stack.Screen name="settings/leaderboard" />
         <Stack.Screen name="settings/index" />
+        <Stack.Screen name="system/pages/index" />
       </Stack>
       <BackgroundExportEngine />
     </>

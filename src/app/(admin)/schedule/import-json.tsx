@@ -7,6 +7,7 @@ import { SsfButton } from '../../../components/ui/SsfButton';
 import { ArrowLeft, CheckCircle, AlertCircle, Play, Database, FileText, Upload, Calendar } from 'lucide-react-native';
 import { useAuthStore } from '../../../core/store/authStore';
 import { databaseProvider as db } from '../../../providers/database';
+import { supabase } from '../../../core/config/supabase';
 import { useFestival } from '../../../core/hooks/useFestival';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -89,31 +90,50 @@ export default function ImportScheduleJson() {
   };
 
   const runDryRunValidation = async () => {
-    if (!festivalId || scheduleData.length === 0 || isDryRunning) return;
+    console.log("runDryRunValidation triggered");
+    console.log("festivalId:", festivalId);
+    console.log("scheduleData length:", scheduleData.length);
+    console.log("isDryRunning:", isDryRunning);
+
+    if (!festivalId) {
+      alert("Error: No active festival found. Please activate a festival first.");
+      console.log("Returned because festivalId is missing");
+      return;
+    }
+    if (scheduleData.length === 0 || isDryRunning) {
+      console.log("Returned because scheduleData is empty or isDryRunning is true");
+      return;
+    }
+    console.log("Starting dry run...");
     setIsDryRunning(true);
     setDryRunReport(null);
 
     try {
-      // Direct dry run via the postgres execute function but aborting transaction before committing?
-      // Since it's clean and safe, we can run a safe RPC dry run or simulate locally.
-      // Let's do a simulation dry run via Supabase Database Provider chunk call but inside a test transaction.
-      // Wait, we don't have rollbacks inside supabase rpc directly unless we write one. 
-      // But we can easily query items, categories, venues, and overlaps using Supabase JS client and return the reports!
-      // This is extremely safe and returns instant feedback to the admin!
-      
       const errors: string[] = [];
       const conflicts: any[] = [];
       
+      console.log("Fetching from db...");
       // 1. Fetch all venues and items for festival to map and validate locally
-      const [venuesRes, itemsRes, existingSchRes] = await Promise.all([
-        db.supabase.from('venues').select('id, name').eq('festival_id', festivalId),
-        db.supabase.from('items').select('id, item_code, item_name_en, category_codes').eq('festival_id', festivalId).eq('is_active', true),
-        db.supabase.from('schedules').select('id, venue_id, start_time, end_time, items(item_name_en, item_code)').eq('festival_id', festivalId)
-      ]);
+      
+      console.log("Fetching venues...");
+      const venuesRes = await supabase.from('venues').select('id, name').eq('festival_id', festivalId);
+      if (venuesRes.error) console.error("Venues fetch error:", venuesRes.error);
+      
+      console.log("Fetching items...");
+      const itemsRes = await supabase.from('items').select('id, item_code, item_name_en, category_codes').eq('festival_id', festivalId).eq('is_active', true);
+      if (itemsRes.error) console.error("Items fetch error:", itemsRes.error);
+      
+      console.log("Fetching schedules...");
+      const existingSchRes = await supabase.from('schedules').select('id, venue_id, start_time, end_time, items(item_name_en, item_code)').eq('festival_id', festivalId);
+      if (existingSchRes.error) console.error("Schedules fetch error:", existingSchRes.error);
+      
+      console.log("DB Fetch complete.");
 
       const venues = venuesRes.data || [];
       const items = itemsRes.data || [];
       const existingSch = existingSchRes.data || [];
+      
+      console.log("venues:", venues.length, "items:", items.length, "existing:", existingSch.length);
 
       // 2. Validate row by row
       scheduleData.forEach((s, idx) => {
@@ -170,6 +190,8 @@ export default function ImportScheduleJson() {
         });
       });
 
+      console.log("Validation done. Errors:", errors.length, "Conflicts:", conflicts.length);
+
       setDryRunReport({
         isValid: errors.length === 0 && conflicts.length === 0,
         errors,
@@ -177,8 +199,10 @@ export default function ImportScheduleJson() {
       });
 
     } catch (e: any) {
-      Alert.alert("Dry-Run Error", e.message);
+      console.error("Dry run caught error:", e);
+      alert("Dry-Run Error: " + e.message);
     } finally {
+      console.log("Setting isDryRunning to false");
       setIsDryRunning(false);
     }
   };
@@ -195,7 +219,16 @@ export default function ImportScheduleJson() {
       const chunkSize = 50;
       const chunks = [];
       for (let i = 0; i < scheduleData.length; i += chunkSize) {
-        chunks.push(scheduleData.slice(i, i + chunkSize));
+        const rawChunk = scheduleData.slice(i, i + chunkSize);
+        // WORKAROUND: There is a typo in the DB migration '060_execute_schedule_import.sql'
+        // The format string is 'YYYY-MM-DD HH:12:MI AM' instead of 'YYYY-MM-DD HH12:MI AM'
+        // By injecting ':12:' into the time string (e.g. 07:30 PM -> 07:12:30 PM), it successfully parses the HH and MI.
+        const fixedChunk = rawChunk.map(s => ({
+          ...s,
+          start_time: s.start_time.replace(/(\d{2}):(\d{2})\s?(AM|PM)/i, '$1:12:$2 $3'),
+          end_time: s.end_time.replace(/(\d{2}):(\d{2})\s?(AM|PM)/i, '$1:12:$2 $3')
+        }));
+        chunks.push(fixedChunk);
       }
 
       let totalImported = 0;

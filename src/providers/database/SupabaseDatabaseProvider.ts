@@ -1049,11 +1049,23 @@ export class SupabaseDatabaseProvider implements DatabaseProvider {
   async expireJudgeToken(token: string): Promise<QueryResult<void>> {
     const { error } = await supabase
       .from('judge_tokens')
-      .update({ is_used: true })
+      .update({ is_used: true, used_at: new Date().toISOString() })
       .eq('token', token.toUpperCase().trim());
-
     return { data: undefined, error: normalizeError(error) };
   }
+
+  async logJudgeActivity(payload: { judgeId: string; scheduleId: string; tenantId: string; actionType: string; actionDetails: Record<string, any> }): Promise<QueryResult<void>> {
+    const { error } = await supabase.rpc('log_judge_activity', {
+      p_judge_id: payload.judgeId,
+      p_schedule_id: payload.scheduleId,
+      p_tenant_id: payload.tenantId,
+      p_action_type: payload.actionType,
+      p_action_details: payload.actionDetails
+    });
+    return { data: undefined, error: normalizeError(error) };
+  }
+
+
 
   async listJudgeTokens<T>(scheduleId: string): Promise<ListResult<T>> {
     const { data, error } = await supabase

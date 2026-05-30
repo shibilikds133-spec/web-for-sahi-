@@ -331,15 +331,24 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
   },
 
   loadResultOverride: async (resultId: string) => {
-    const { activeTemplate, stableLayout } = get();
+    const { activeTemplate, stableLayout, currentResultId } = get();
     if (!activeTemplate) return false;
+
+    let baseLayers = stableLayout || activeTemplate.layers;
+    
+    // If we are moving from the Base Template to a Result, capture the current canvas as the new base!
+    if (currentResultId === null) {
+      baseLayers = useLayerStore.getState().layers;
+      set({ stableLayout: JSON.parse(JSON.stringify(baseLayers)) });
+    }
 
     try {
       const id = `${activeTemplate.id || 'demo-template-1'}_${resultId}`;
       const overrideDoc = await db.result_overrides.get(id);
 
       if (overrideDoc) {
-        const baseLayers = JSON.parse(JSON.stringify(stableLayout || activeTemplate.layers));
+        // Deep copy baseLayers to avoid mutating the store
+        baseLayers = JSON.parse(JSON.stringify(baseLayers));
         const finalLayers: LayerData[] = [];
 
         // Apply modifications and deletions
@@ -365,12 +374,12 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
         return true;
       } else {
         // Reset to inherited stable layout if no override exists
-        useLayerStore.getState().setLayers(stableLayout || activeTemplate.layers);
+        useLayerStore.getState().setLayers(JSON.parse(JSON.stringify(baseLayers)));
         return false;
       }
     } catch (e) {
       console.error('[PosterStudio] Failed to load result override', e);
-      useLayerStore.getState().setLayers(stableLayout || activeTemplate.layers);
+      useLayerStore.getState().setLayers(JSON.parse(JSON.stringify(baseLayers)));
       return false;
     }
   },
@@ -406,7 +415,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
       };
 
       await db.templates.put(fullDraft);
-      set({ lastSavedAt: new Date(), hasUnsavedChanges: false });
+      set({ lastSavedAt: new Date(), hasUnsavedChanges: false, stableLayout: JSON.parse(JSON.stringify(currentLayers)) });
     } catch (e) {
       console.error('[PosterStudio] Failed to save draft', e);
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SsfCard } from '../../components/ui/SsfCard';
 import { SsfButton } from '../../components/ui/SsfButton';
@@ -9,11 +9,38 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAdminDashboard } from '../../core/hooks/useAdminDashboard';
 import { Bell } from 'lucide-react-native';
 
+// Page Management Imports
+import { usePageManagementStore } from '../../core/store/pageManagementStore';
+import { usePageAccess } from '../../core/hooks/usePageAccess';
+import { PageAccessControl } from '../../components/layout/PageAccessControl';
+
 export default function AdminDashboard() {
-  const { logout, tenant_id } = useAuthStore();
+  const { logout } = useAuthStore();
   const router = useRouter();
   const { useStats } = useAdminDashboard();
   const { data, isLoading, isRefetching, refetch } = useStats();
+
+  const syncRegistry = usePageManagementStore((state) => state.syncRegistry);
+  const fetchPages = usePageManagementStore((state) => state.fetchPages);
+
+  // Auto Route Sync on admin dashboard startup
+  useEffect(() => {
+    const initPageRegistry = async () => {
+      await syncRegistry(); // Auto-discovers and registers new pages
+      await fetchPages();   // Pulls fresh statuses
+    };
+    initPageRegistry();
+  }, []);
+
+  // Hook checks for conditional Menu/Navigation visibility
+  const { isVisible: pVisible } = usePageAccess('admin_participants');
+  const { isVisible: sVisible } = usePageAccess('admin_schedule');
+  const { isVisible: oVisible } = usePageAccess('admin_organisations');
+  const { isVisible: setVisible } = usePageAccess('system_settings');
+  const { isVisible: cVisible } = usePageAccess('admin_communication');
+  const { isVisible: jVisible } = usePageAccess('admin_judges');
+  const { isVisible: lVisible } = usePageAccess('admin_leaderboard');
+  const { isVisible: pmVisible } = usePageAccess('page_management');
 
   const loading = isLoading;
   const refreshing = isRefetching;
@@ -39,108 +66,132 @@ export default function AdminDashboard() {
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: '#F8FAFC' }}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#065F46" />}
-    >
-      <Animated.View entering={FadeInDown.duration(800).springify()}>
-        <LinearGradient
-          colors={['#065F46', '#044230']}
-          style={{ borderBottomLeftRadius: 40, borderBottomRightRadius: 40, paddingTop: 64, paddingBottom: 48, paddingHorizontal: 24, marginBottom: 32 }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#fff', opacity: 0.8, fontFamily: 'Poppins_700Bold', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>
-                {orgData?.type ?? 'ADMIN'} PORTAL
-              </Text>
-              <Text numberOfLines={2} style={{ color: '#fff', fontSize: 28, fontFamily: 'Poppins_900Black', lineHeight: 32, marginTop: 4 }}>
-                {orgData?.name ?? 'Dashboard'}
-              </Text>
+    <PageAccessControl pageKey="admin_dashboard">
+      <ScrollView
+        style={{ flex: 1, backgroundColor: '#F8FAFC' }}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#065F46" />}
+      >
+        <Animated.View entering={FadeInDown.duration(800).springify()}>
+          <LinearGradient
+            colors={['#065F46', '#044230']}
+            style={{ borderBottomLeftRadius: 40, borderBottomRightRadius: 40, paddingTop: 64, paddingBottom: 48, paddingHorizontal: 24, marginBottom: 32 }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', opacity: 0.8, fontFamily: 'Poppins_700Bold', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>
+                  {orgData?.type ?? 'ADMIN'} PORTAL
+                </Text>
+                <Text numberOfLines={2} style={{ color: '#fff', fontSize: 28, fontFamily: 'Poppins_900Black', lineHeight: 32, marginTop: 4 }}>
+                  {orgData?.name ?? 'Dashboard'}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <TouchableOpacity onPress={() => router.push('/notifications' as any)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' }}>
+                  <Bell size={20} color="#fff" />
+                </TouchableOpacity>
+                <SsfButton label="Logout" variant="outline" size="sm" style={{ borderColor: '#fff' }} onPress={logout} />
+              </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <TouchableOpacity onPress={() => router.push('/notifications' as any)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' }}>
-                <Bell size={20} color="#fff" />
-              </TouchableOpacity>
-              <SsfButton label="Logout" variant="outline" size="sm" style={{ borderColor: '#fff' }} onPress={logout} />
-            </View>
-          </View>
-          <Text style={{ color: '#F8FAFC', opacity: 0.8, fontFamily: 'Poppins_400Regular', marginTop: 8 }}>Manage your festival operations</Text>
-        </LinearGradient>
-      </Animated.View>
-
-      <View style={{ paddingHorizontal: 20 }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
-          <Animated.View entering={FadeInUp.duration(800).delay(200).springify()} style={{ width: '47%' }}>
-            <SsfCard>
-              <Text style={{ color: '#64748B', fontFamily: 'Poppins_400Regular', fontSize: 13 }}>Participants</Text>
-              <Text style={{ color: '#065F46', fontSize: 32, fontFamily: 'Poppins_900Black', marginTop: 4 }}>{stats.participants}</Text>
-            </SsfCard>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.duration(800).delay(300).springify()} style={{ width: '47%' }}>
-            <SsfCard>
-              <Text style={{ color: '#64748B', fontFamily: 'Poppins_400Regular', fontSize: 13 }}>Items</Text>
-              <Text style={{ color: '#B45309', fontSize: 32, fontFamily: 'Poppins_900Black', marginTop: 4 }}>{stats.items}</Text>
-            </SsfCard>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.duration(800).delay(400).springify()} style={{ width: '47%' }}>
-            <SsfCard>
-              <Text style={{ color: '#64748B', fontFamily: 'Poppins_400Regular', fontSize: 13 }}>Pending Regs</Text>
-              <Text style={{ color: '#E11D48', fontSize: 32, fontFamily: 'Poppins_900Black', marginTop: 4 }}>{stats.results}</Text>
-            </SsfCard>
-          </Animated.View>
-        </View>
-
-        <Animated.View entering={FadeInUp.duration(800).delay(500).springify()}>
-          <Text style={{ color: '#0F172A', fontSize: 22, fontFamily: 'Poppins_900Black', marginBottom: 20 }}>Quick Links</Text>
-          <SsfCard style={{ marginBottom: 24 }}>
-            <View style={{ gap: 16 }}>
-              <SsfButton
-                label="Manage Participants"
-                variant="primary"
-                onPress={() => router.push('/(admin)/participants')}
-              />
-              <SsfButton
-                label="Manage Schedules"
-                variant="outline"
-                onPress={() => router.push('/(admin)/schedule' as any)}
-              />
-              <SsfButton
-                label="Sub-Organisations"
-                variant="outline"
-                onPress={() => router.push('/(admin)/organisations')}
-              />
-              <SsfButton
-                label="Festival Settings"
-                variant="outline"
-                onPress={() => router.push('/(admin)/settings')}
-              />
-              <SsfButton
-                label="Communication Center"
-                variant="outline"
-                onPress={() => router.push('/(admin)/communication')}
-              />
-              <SsfButton
-                label="Judge Management"
-                variant="outline"
-                onPress={() => router.push('/(admin)/judges' as any)}
-              />
-              <SsfButton
-                label="Leaderboard Management"
-                variant="outline"
-                onPress={() => router.push('/(admin)/settings/leaderboard')}
-              />
-              <SsfButton
-                label="📱 Open Judge Portal"
-                variant="primary"
-                style={{ backgroundColor: '#1B6B3A' }}
-                onPress={() => router.push('/judge' as any)}
-              />
-            </View>
-          </SsfCard>
+            <Text style={{ color: '#F8FAFC', opacity: 0.8, fontFamily: 'Poppins_400Regular', marginTop: 8 }}>Manage your festival operations</Text>
+          </LinearGradient>
         </Animated.View>
+
+        <View style={{ paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
+            <Animated.View entering={FadeInUp.duration(800).delay(200).springify()} style={{ width: '47%' }}>
+              <SsfCard>
+                <Text style={{ color: '#64748B', fontFamily: 'Poppins_400Regular', fontSize: 13 }}>Participants</Text>
+                <Text style={{ color: '#065F46', fontSize: 32, fontFamily: 'Poppins_900Black', marginTop: 4 }}>{stats.participants}</Text>
+              </SsfCard>
+            </Animated.View>
+
+            <Animated.View entering={FadeInUp.duration(800).delay(300).springify()} style={{ width: '47%' }}>
+              <SsfCard>
+                <Text style={{ color: '#64748B', fontFamily: 'Poppins_400Regular', fontSize: 13 }}>Items</Text>
+                <Text style={{ color: '#B45309', fontSize: 32, fontFamily: 'Poppins_900Black', marginTop: 4 }}>{stats.items}</Text>
+              </SsfCard>
+            </Animated.View>
+
+            <Animated.View entering={FadeInUp.duration(800).delay(400).springify()} style={{ width: '47%' }}>
+              <SsfCard>
+                <Text style={{ color: '#64748B', fontFamily: 'Poppins_400Regular', fontSize: 13 }}>Pending Regs</Text>
+                <Text style={{ color: '#E11D48', fontSize: 32, fontFamily: 'Poppins_900Black', marginTop: 4 }}>{stats.results}</Text>
+              </SsfCard>
+            </Animated.View>
+          </View>
+
+          <Animated.View entering={FadeInUp.duration(800).delay(500).springify()}>
+            <Text style={{ color: '#0F172A', fontSize: 22, fontFamily: 'Poppins_900Black', marginBottom: 20 }}>Quick Links</Text>
+            <SsfCard style={{ marginBottom: 24 }}>
+              <View style={{ gap: 16 }}>
+                {pVisible && (
+                  <SsfButton
+                    label="Manage Participants"
+                    variant="primary"
+                    onPress={() => router.push('/(admin)/participants')}
+                  />
+                )}
+                {sVisible && (
+                  <SsfButton
+                    label="Manage Schedules"
+                    variant="outline"
+                    onPress={() => router.push('/(admin)/schedule' as any)}
+                  />
+                )}
+                {oVisible && (
+                  <SsfButton
+                    label="Sub-Organisations"
+                    variant="outline"
+                    onPress={() => router.push('/(admin)/organisations')}
+                  />
+                )}
+                {setVisible && (
+                  <SsfButton
+                    label="Festival Settings"
+                    variant="outline"
+                    onPress={() => router.push('/(admin)/settings')}
+                  />
+                )}
+                {cVisible && (
+                  <SsfButton
+                    label="Communication Center"
+                    variant="outline"
+                    onPress={() => router.push('/(admin)/communication')}
+                  />
+                )}
+                {jVisible && (
+                  <SsfButton
+                    label="Judge Management"
+                    variant="outline"
+                    onPress={() => router.push('/(admin)/judges' as any)}
+                  />
+                )}
+                {lVisible && (
+                  <SsfButton
+                    label="Leaderboard Management"
+                    variant="outline"
+                    onPress={() => router.push('/(admin)/settings/leaderboard')}
+                  />
+                )}
+                {pmVisible && (
+                  <SsfButton
+                    label="⚙️ Page Management Center"
+                    variant="primary"
+                    style={{ backgroundColor: '#1E293B' }}
+                    onPress={() => router.push('/(admin)/system/pages')}
+                  />
+                )}
+                <SsfButton
+                  label="📱 Open Judge Portal"
+                  variant="primary"
+                  style={{ backgroundColor: '#1B6B3A' }}
+                  onPress={() => router.push('/judge' as any)}
+                />
+              </View>
+            </SsfCard>
+          </Animated.View>
+
 
         {/* Graphs */}
         {data?.categoryGraph && data.categoryGraph.length > 0 && (
@@ -189,6 +240,7 @@ export default function AdminDashboard() {
           </Animated.View>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </PageAccessControl>
   );
 }

@@ -33,13 +33,17 @@ import {
   Trophy,
   UserRound,
 } from 'lucide-react-native';
-import { LeaderboardRow, PublicPublishedResultRow } from '../../services/leaderboardService';
+import { LeaderboardRow, PublicPublishedResultRow, leaderboardService } from '../../services/leaderboardService';
 import { usePublicLeaderboard, usePublicPublishedResults } from '../../core/hooks/useLeaderboard';
 import { useGetPublicLeaderboardSettings } from '../../core/hooks/useLeaderboardSettings';
 import { usePublicSchedule, usePublicRegistrations } from '../../core/hooks/useSchedule';
 import PublicAiChatbot from '../../components/leaderboard/PublicAiChatbot';
 import { useAuthStore } from '../../core/store/authStore';
 import { Bell } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LEADERBOARD_QUERY_KEYS } from '../../constants/leaderboard';
+import { supabase } from '../../core/config/supabase';
 
 type ActiveTab = 'organisations' | 'individuals';
 type Breakpoint = 'desktop' | 'tablet' | 'mobile';
@@ -301,6 +305,145 @@ export function PublicLeaderboardExperience({ page = 'landing' }: { page?: Publi
   const publishedResultsQuery = usePublicPublishedResults(undefined, festivalId, true, true);
   const scheduleQuery = usePublicSchedule(festivalId);
   const registrationsQuery = usePublicRegistrations(festivalId);
+
+  const queryClient = useQueryClient();
+
+  // 1. Asynchronously load cached data from AsyncStorage on mount to populate the React Query cache instantly
+  useEffect(() => {
+    const initCache = async () => {
+      try {
+        // First load settings cache to get the festivalId immediately
+        const settingsCacheStr = await AsyncStorage.getItem('cache:leaderboard_settings');
+        let cachedFestivalId: string | null = null;
+        if (settingsCacheStr) {
+          const settingsCache = JSON.parse(settingsCacheStr);
+          cachedFestivalId = settingsCache.festival_id;
+          queryClient.setQueryData(
+            LEADERBOARD_QUERY_KEYS.publicLeaderboardSettings(undefined, undefined),
+            settingsCache
+          );
+        }
+
+        // Use the cached festivalId or the active one
+        const activeFestivalId = festivalId || cachedFestivalId;
+
+        // Populate other caches using the festivalId
+        const lbCacheStr = await AsyncStorage.getItem('cache:public_leaderboard');
+        if (lbCacheStr) {
+          queryClient.setQueryData(
+            LEADERBOARD_QUERY_KEYS.publicLeaderboard(undefined, activeFestivalId),
+            JSON.parse(lbCacheStr)
+          );
+        }
+
+        const resultsCacheStr = await AsyncStorage.getItem('cache:public_published_results');
+        if (resultsCacheStr) {
+          queryClient.setQueryData(
+            LEADERBOARD_QUERY_KEYS.publicPublishedResults(undefined, activeFestivalId, true),
+            JSON.parse(resultsCacheStr)
+          );
+        }
+
+        const scheduleCacheStr = await AsyncStorage.getItem('cache:public_schedule');
+        if (scheduleCacheStr) {
+          queryClient.setQueryData(
+            ['public-schedules', activeFestivalId],
+            JSON.parse(scheduleCacheStr)
+          );
+        }
+
+        const registrationsCacheStr = await AsyncStorage.getItem('cache:public_registrations');
+        if (registrationsCacheStr) {
+          queryClient.setQueryData(
+            ['public-registrations', activeFestivalId],
+            JSON.parse(registrationsCacheStr)
+          );
+        }
+      } catch (err) {
+        console.warn('Failed to restore leaderboard local cache:', err);
+      }
+    };
+    initCache();
+  }, [queryClient, festivalId]);
+
+  // 2. Silently sync fresh results to AsyncStorage when queries complete
+  useEffect(() => {
+    if (settingsQuery.data) {
+      AsyncStorage.setItem('cache:leaderboard_settings', JSON.stringify(settingsQuery.data)).catch(() => {});
+    }
+  }, [settingsQuery.data]);
+
+  useEffect(() => {
+    if (organisationQuery.data && festivalId) {
+      AsyncStorage.setItem('cache:public_leaderboard', JSON.stringify(organisationQuery.data)).catch(() => {});
+    }
+  }, [organisationQuery.data, festivalId]);
+
+  useEffect(() => {
+    if (publishedResultsQuery.data && festivalId) {
+      AsyncStorage.setItem('cache:public_published_results', JSON.stringify(publishedResultsQuery.data)).catch(() => {});
+    }
+  }, [publishedResultsQuery.data, festivalId]);
+
+  useEffect(() => {
+    if (scheduleQuery.data && festivalId) {
+      AsyncStorage.setItem('cache:public_schedule', JSON.stringify(scheduleQuery.data)).catch(() => {});
+    }
+  }, [scheduleQuery.data, festivalId]);
+
+  useEffect(() => {
+    if (registrationsQuery.data && festivalId) {
+      AsyncStorage.setItem('cache:public_registrations', JSON.stringify(registrationsQuery.data)).catch(() => {});
+    }
+  }, [registrationsQuery.data, festivalId]);
+
+  // 3. Background prefetching of all other tabs' data to ensure instant transitions
+  useEffect(() => {
+    if (festivalId) {
+      // Prefetch leaderboard (Unit Standings)
+      queryClient.prefetchQuery({
+        queryKey: LEADERBOARD_QUERY_KEYS.publicLeaderboard(undefined, festivalId),
+        queryFn: () => leaderboardService.listPublicLeaderboard(undefined, festivalId),
+        staleTime: 300000,
+      });
+
+      // Prefetch published results (Item Results)
+      queryClient.prefetchQuery({
+        queryKey: LEADERBOARD_QUERY_KEYS.publicPublishedResults(undefined, festivalId, true),
+        queryFn: () => leaderboardService.listPublicPublishedResults(undefined, festivalId, true),
+        staleTime: 300000,
+      });
+
+      // Prefetch schedules
+      queryClient.prefetchQuery({
+        queryKey: ['public-schedules', festivalId],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from('schedules')
+            .select('*, venues(*), items(*)')
+            .eq('festival_id', festivalId)
+            .order('start_time');
+          if (error) throw new Error(error.message);
+          return data || [];
+        },
+        staleTime: 300000,
+      });
+
+      // Prefetch registrations
+      queryClient.prefetchQuery({
+        queryKey: ['public-registrations', festivalId],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from('registrations')
+            .select('id, item_id, status, is_verified, code_letter')
+            .eq('festival_id', festivalId);
+          if (error) throw new Error(error.message);
+          return data || [];
+        },
+        staleTime: 300000,
+      });
+    }
+  }, [festivalId, queryClient]);
 
   const organisationData = useMemo(() => organisationQuery.data ?? [], [organisationQuery.data]);
   const publishedResults = useMemo(() => publishedResultsQuery.data ?? [], [publishedResultsQuery.data]);

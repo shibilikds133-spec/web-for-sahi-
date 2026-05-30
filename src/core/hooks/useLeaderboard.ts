@@ -6,6 +6,8 @@ export const usePublicLeaderboard = (tenantId?: string | null, festivalId?: stri
   return useQuery({
     queryKey: LEADERBOARD_QUERY_KEYS.publicLeaderboard(tenantId, festivalId),
     queryFn: () => leaderboardService.listPublicLeaderboard(tenantId, festivalId),
+    staleTime: 300000, // 5 minutes
+    gcTime: 1800000, // 30 minutes
   });
 };
 
@@ -19,5 +21,7 @@ export const usePublicPublishedResults = (
     queryKey: LEADERBOARD_QUERY_KEYS.publicPublishedResults(tenantId, festivalId, includeParticipantDetails),
     queryFn: () => leaderboardService.listPublicPublishedResults(tenantId, festivalId, includeParticipantDetails),
     enabled,
+    staleTime: 300000, // 5 minutes
+    gcTime: 1800000, // 30 minutes
   });
 };

@@ -86,6 +86,8 @@ export const usePublicSchedule = (festivalId?: string | null) => {
       return data || [];
     },
     enabled: !!festivalId,
+    staleTime: 300000, // 5 minutes
+    gcTime: 1800000, // 30 minutes
   });
 };
 
@@ -102,6 +104,8 @@ export const usePublicRegistrations = (festivalId?: string | null) => {
       return data || [];
     },
     enabled: !!festivalId,
+    staleTime: 300000, // 5 minutes
+    gcTime: 1800000, // 30 minutes
   });
 };
 

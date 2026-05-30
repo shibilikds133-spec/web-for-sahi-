@@ -84,6 +84,20 @@ export default function JudgeMarksPage() {
 
         if (res.error) throw new Error(res.error.message);
 
+        try {
+          // Fire and forget log
+          databaseProvider.logJudgeActivity({
+            judgeId: session.judge_id,
+            scheduleId: session.schedule_id,
+            tenantId: session.tenant_id,
+            actionType: 'MARKS_UPDATED',
+            actionDetails: {
+              registrationId: regId,
+              timestamp: new Date().toISOString()
+            }
+          });
+        } catch(e) {}
+
         // Success! Remove from queue
         setSyncQueue(prev => prev.filter(id => id !== regId));
         setSyncStatus('synced');
@@ -228,6 +242,22 @@ export default function JudgeMarksPage() {
         if (res.error) {
           throw new Error(`Failed to save mark entry: ${res.error.message}`);
         }
+      }
+
+      // Log the activity
+      try {
+        await databaseProvider.logJudgeActivity({
+          judgeId: session.judge_id,
+          scheduleId: session.schedule_id,
+          tenantId: session.tenant_id,
+          actionType: 'MARKS_SUBMITTED',
+          actionDetails: {
+            participantsCount: registrations.length,
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (logErr) {
+        console.error('Failed to log MARKS_SUBMITTED', logErr);
       }
 
       // Expire the token — cannot reuse

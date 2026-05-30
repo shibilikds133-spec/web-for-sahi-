@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform, TextInput, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Platform, TextInput, useWindowDimensions, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SsfCard } from '../../components/ui/SsfCard';
 import { SsfButton } from '../../components/ui/SsfButton';
 import { useSchedule, usePublicSchedule, usePublicRegistrations } from '../../core/hooks/useSchedule';
-import { Calendar, MapPin, Clock, Search, X, Lock, Bell } from 'lucide-react-native';
+import { Calendar, MapPin, Clock, Search, X, Lock, Bell, RefreshCw } from 'lucide-react-native';
 import { useGetPublicLeaderboardSettings } from '../../core/hooks/useLeaderboardSettings';
 
 function ScheduleWorkflowBadges({ registrations = [] }: { registrations?: any[] }) {
@@ -93,6 +93,16 @@ export default function StageManagementDashboard() {
   
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      schedulesQuery.refetch(),
+      registrationsQuery.refetch()
+    ]);
+    setRefreshing(false);
+  }, [schedulesQuery, registrationsQuery]);
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('All');
@@ -217,15 +227,27 @@ export default function StageManagementDashboard() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-ssf-bg py-6 px-4">
+    <ScrollView 
+      className="flex-1 bg-ssf-bg py-6 px-4"
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View className="flex-row justify-between items-center mb-6">
         <Text className="text-2xl font-poppins-black text-ssf-text">Stage Portal</Text>
-        <TouchableOpacity
-          onPress={() => router.push('/notifications' as any)}
-          className="p-2 bg-gray-100 rounded-full"
-        >
-          <Bell size={20} color="#374151" />
-        </TouchableOpacity>
+        <View className="flex-row gap-x-3">
+          <TouchableOpacity
+            onPress={onRefresh}
+            disabled={refreshing}
+            className="p-2 bg-gray-100 rounded-full"
+          >
+            <RefreshCw size={20} color="#374151" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push('/notifications' as any)}
+            className="p-2 bg-gray-100 rounded-full"
+          >
+            <Bell size={20} color="#374151" />
+          </TouchableOpacity>
+        </View>
       </View>
       
       <View className="flex-row flex-wrap gap-3 mb-6">

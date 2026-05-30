@@ -73,12 +73,14 @@ export default function PosterStudio({ festivalId, tenantId }: PosterStudioProps
     }
   }, []);
 
-  // When DB templates first load, auto-select the first one
+  // When DB templates first load, auto-select the last used one, or the first one
   useEffect(() => {
     if (dbTemplates.length > 0 && !currentTemplateId) {
-      setCurrentTemplateId(dbTemplates[0].id!);
+      const lastId = localStorage.getItem('posterStudio_lastTemplateId');
+      const exists = lastId && dbTemplates.find((t: any) => t.id === lastId);
+      setCurrentTemplateId(exists ? lastId : dbTemplates[0].id!);
     }
-  }, [dbTemplates]);
+  }, [dbTemplates, currentTemplateId]);
 
   // Initial Draft Loading — only fires when a real templateId is set
   useEffect(() => {
@@ -391,7 +393,9 @@ export default function PosterStudio({ festivalId, tenantId }: PosterStudioProps
               <select
                 value={currentTemplateId}
                 onChange={(e) => {
-                  setCurrentTemplateId(e.target.value);
+                  const newId = e.target.value;
+                  setCurrentTemplateId(newId);
+                  localStorage.setItem('posterStudio_lastTemplateId', newId);
                   useTemplateStore.getState().setCurrentResultId(null);
                 }}
                 style={{

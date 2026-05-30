@@ -172,7 +172,7 @@ export default function CheckIn() {
           r.participants?.id === parsed.pid
       );
       if (reg) {
-        setVerifyModal({ reg, visible: true });
+        handleVerify(reg.id);
       } else {
         Alert.alert('Not Found', `No participant with chest number "${chest}" registered for this event.`);
       }
