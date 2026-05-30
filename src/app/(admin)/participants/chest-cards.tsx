@@ -309,7 +309,7 @@ const ChestCard = ({
   const categoryCode = participant.category_code || 'GN';
   const participantName = formatParticipantName(participant.name);
   const participantUnit = participant.organisations?.name || 'Unit Name';
-  const qrSize = Math.max(64, Math.round(template.fields.qr.width * scale));
+  const qrSize = 300; // Fixed size to prevent re-fetching on print scale change
   const qrUrl = createQrUrl(chestNumber, participant.profile_slug || participant.id, categoryCode, qrSize, template.fields.qr.color, template.fields.qr.backgroundColor);
 
   return (
@@ -318,7 +318,7 @@ const ChestCard = ({
       style={{
         width: TEMPLATE_WIDTH * scale,
         height: TEMPLATE_HEIGHT * scale,
-        borderRadius: 10 * scale,
+        borderRadius: 0,
         overflow: 'hidden',
         backgroundColor: '#FFFFFF',
         borderWidth: 1,
@@ -650,7 +650,6 @@ export default function ChestCardsPage() {
       {Platform.OS === 'web' && (
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            ${printSize === 'A3' ? '@page { size: A3 portrait; margin: 5mm; }' : '@page { margin: 5mm; }'}
             .px-4 { padding-left: 0 !important; padding-right: 0 !important; }
             .py-6 { padding-top: 0 !important; padding-bottom: 0 !important; }
             * {
@@ -675,19 +674,42 @@ export default function ChestCardsPage() {
               flex-wrap: wrap !important; 
               justify-content: center !important; 
               align-content: flex-start !important;
-              gap: 4mm !important; 
               width: 100% !important; 
               margin: 0 !important;
               padding: 0 !important;
             }
             .print-card { 
-              width: 89mm !important; 
-              height: 126mm !important; 
               page-break-inside: avoid; 
               break-inside: avoid; 
+              border: 1px dashed #94A3B8 !important;
+              box-sizing: border-box !important;
             }
             .print-only { display: flex !important; }
             .preview-only { display: none !important; }
+            
+            .chest-card-wrapper {
+              border-width: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .print-card {
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: hidden !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+            }
+            
+            ${printSize === 'A3' ? `
+              @page { size: A3 landscape; margin: 5mm; }
+              .print-card { width: 50mm !important; height: 70.5mm !important; }
+              .print-sheet { gap: 0 !important; }
+            ` : `
+              @page { margin: 5mm; }
+              .print-card { width: 89mm !important; height: 126mm !important; }
+              .print-sheet { gap: 0 !important; }
+            `}
           }
           @media screen {
             .print-only { display: none !important; }
@@ -904,7 +926,7 @@ export default function ChestCardsPage() {
             <TouchableOpacity 
               onPress={() => {
                 if (Platform.OS === 'web') {
-                  window.alert("To save as A3 PDF:\n\n1. Change 'Destination' to 'Save as PDF'.\n2. The system has automatically forced the size to A3 (prints 9 cards per page).\n3. Click Save.");
+                  window.alert("To save as A3 PDF:\n\n1. Change 'Destination' to 'Save as PDF'.\n2. The system has automatically forced the size to A3 Landscape (prints 20 cards per page).\n3. Click Save.");
                   setPrintSize('A3');
                   setTimeout(() => {
                     window.print();
@@ -915,7 +937,7 @@ export default function ChestCardsPage() {
               className="bg-purple-600 px-4 py-3 rounded-xl flex-row items-center justify-center gap-x-2 flex-1"
             >
               <Download size={16} color="#FFF" />
-              <Text className="font-poppins-bold text-white">A3 PDF (9)</Text>
+              <Text className="font-poppins-bold text-white">A3 PDF (20)</Text>
             </TouchableOpacity>
             
             <TouchableOpacity onPress={confirmRegenerate} className="bg-white border border-ssf-border px-4 py-3 rounded-xl flex-row items-center justify-center gap-x-2">
@@ -1011,7 +1033,7 @@ export default function ChestCardsPage() {
       <View className="print-only print-sheet">
         {printItems.map((p: ChestCardParticipant) => (
           <View key={p.id} className="print-card">
-            <ChestCard participant={p} template={activeTemplate} scale={1.37} />
+            <ChestCard participant={p} template={activeTemplate} scale={printSize === 'A3' ? 0.76 : 1.37} />
           </View>
         ))}
       </View>
