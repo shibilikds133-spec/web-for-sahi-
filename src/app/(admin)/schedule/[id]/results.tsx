@@ -259,7 +259,7 @@ export default function ResultsPage() {
       return;
     }
 
-    const unset = Object.values(results).filter(r => !r.grade);
+    const unset = mode === 'direct' ? [] : Object.values(results).filter(r => !r.grade);
     if (unset.length > 0) {
       if (Platform.OS === 'web') {
         window.alert(`Incomplete: ${unset.length} participant(s) still need a grade. Set grade "-" if not applicable.`);

@@ -82,7 +82,33 @@ export const GroupItemLevelRule: RegistrationRule = {
   id: 'REG-05',
   description: 'Group items start from specific levels based on config (default Division)',
   evaluate(context: RuleContext): RuleResult | null {
-    // Policy disabled as per user request
+    const { item, festivalConfig } = context;
+    
+    if (item.participation_type !== 'group') return null;
+
+    const currentLevel = festivalConfig?.level || 'unit';
+    const allowedStartLevel = festivalConfig?.group_items_start_level || 'division';
+
+    // Basic hierarchy weights for comparison
+    const levels: Record<string, number> = { 'unit': 1, 'sector': 2, 'division': 3, 'district': 4, 'state': 5 };
+    
+    if (levels[currentLevel] < levels[allowedStartLevel]) {
+      // Sector friendly match behavior
+      if (currentLevel === 'sector' && festivalConfig?.allow_sector_friendly_groups) {
+         return {
+           ruleId: this.id,
+           severity: 'warning',
+           message: 'Sector-level group items are for friendly matches only. Points go to the unit.',
+         };
+      }
+
+      return {
+        ruleId: this.id,
+        severity: 'error',
+        message: `Group items are only allowed from ${allowedStartLevel} level onwards.`,
+      };
+    }
+
     return null;
   }
 };
