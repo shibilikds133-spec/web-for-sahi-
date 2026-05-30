@@ -462,6 +462,14 @@ const ChestCard = ({
   );
 };
 
+const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+};
+
 export default function ChestCardsPage() {
   const goBack = useGoBack('/(admin)/participants');
   const { participants, isLoadingList } = useParticipants();
@@ -684,8 +692,23 @@ export default function ChestCardsPage() {
               border: 1px dashed #94A3B8 !important;
               box-sizing: border-box !important;
             }
-            .print-only { display: flex !important; }
+            .print-only { 
+              display: block !important; 
+              width: 100% !important; 
+              height: auto !important;
+            }
             .preview-only { display: none !important; }
+            
+            .print-page {
+              width: 100% !important;
+              height: 297mm !important;
+              display: flex !important;
+              justify-content: center !important;
+              align-items: center !important;
+              page-break-after: always !important;
+              break-after: page !important;
+              box-sizing: border-box !important;
+            }
             
             .chest-card-wrapper {
               border-width: 0 !important;
@@ -702,9 +725,15 @@ export default function ChestCardsPage() {
             }
             
             ${printSize === 'A3' ? `
-              @page { size: A3 landscape; margin: 5mm; }
-              .print-card { width: 50mm !important; height: 70.5mm !important; }
-              .print-sheet { gap: 0 !important; }
+              @page { size: A3 landscape; margin: 0; }
+              .print-card { width: 70mm !important; height: 99mm !important; }
+              .print-sheet { 
+                width: 420mm !important; 
+                height: 297mm !important; 
+                gap: 0 !important; 
+                margin: 0 !important;
+                justify-content: flex-start !important;
+              }
             ` : `
               @page { margin: 5mm; }
               .print-card { width: 89mm !important; height: 126mm !important; }
@@ -1030,12 +1059,68 @@ export default function ChestCardsPage() {
         </View>
       </View>
 
-      <View className="print-only print-sheet">
-        {printItems.map((p: ChestCardParticipant) => (
-          <View key={p.id} className="print-card">
-            <ChestCard participant={p} template={activeTemplate} scale={printSize === 'A3' ? 0.76 : 1.37} />
+      <View className="print-only" style={{ display: 'block', width: '100%', height: 'auto' } as any}>
+        {printSize === 'A3' ? (
+          chunkArray(printItems, 18).map((pageItems, pageIdx) => (
+            <View 
+              key={pageIdx} 
+              className="print-page" 
+              style={{ 
+                width: '100%', 
+                height: '297mm', 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                pageBreakAfter: 'always',
+                breakAfter: 'page',
+                margin: 0,
+                padding: 0,
+              } as any}
+            >
+              <View 
+                className="print-sheet" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'row', 
+                  flexWrap: 'wrap', 
+                  width: '420mm', 
+                  height: '297mm', 
+                  gap: 0, 
+                  margin: 0,
+                  justifyContent: 'flex-start',
+                } as any}
+              >
+                {pageItems.map((p: ChestCardParticipant) => (
+                  <View 
+                    key={p.id} 
+                    className="print-card" 
+                    style={{ 
+                      width: '70mm', 
+                      height: '99mm', 
+                      margin: 0, 
+                      padding: 0, 
+                      boxSizing: 'border-box', 
+                      border: '1px dashed #94A3B8', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                    } as any}
+                  >
+                    <ChestCard participant={p} template={activeTemplate} scale={1.06} />
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))
+        ) : (
+          <View className="print-sheet">
+            {printItems.map((p: ChestCardParticipant) => (
+              <View key={p.id} className="print-card">
+                <ChestCard participant={p} template={activeTemplate} scale={1.37} />
+              </View>
+            ))}
           </View>
-        ))}
+        )}
       </View>
     </ScrollView>
   );
